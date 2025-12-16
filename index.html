@@ -810,19 +810,22 @@
                 // MOBILE CONTROLS (POINTER)
                 if (isMobile) {
                     let input = this.pKey === 'p1' ? mobileInput.p1 : mobileInput.p2;
+                    
                     if (Math.abs(input.x) > 0.1 || Math.abs(input.y) > 0.1) {
                          let targetAngle = Math.atan2(input.y, input.x);
                          let diff = targetAngle - this.angle;
                          while(diff < -Math.PI) diff += Math.PI*2; while(diff > Math.PI) diff -= Math.PI*2;
                          
-                         // ÁP DỤNG ĐỘ NHẠY (SENSITIVITY)
                          let sens = mobileSettings[this.pKey].sensitivity;
                          this.angle += Math.sign(diff) * Math.min(Math.abs(diff), 0.1 * sens);
                          
-                         spd = Math.min(Math.hypot(input.x, input.y), 1.0) * 2;
+                         // --- CHỈNH SỬA TẠI ĐÂY ---
+                         // Gán cứng bằng 2 (Giống hệt PC)
+                         // Bất kể kéo mạnh hay nhẹ, xe đều đi với tốc độ 2
+                         spd = 2; 
                     }
                     if (input.fire) this.shoot(walls);
-                } else {
+                }  else {
                     let c = controls[this.pKey];
                     if(keys[c.left]) this.angle-=0.05; if(keys[c.right]) this.angle+=0.05;
                     if(keys[c.up]) spd=2; else if(keys[c.down]) spd=-2;
