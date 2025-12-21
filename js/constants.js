@@ -61,50 +61,42 @@ let aiConfig = { difficulty: 'EASY', personality: 'BALANCED' };
 const RELOAD_TIME = 75;
 
 const WEAPONS = {
-    NORMAL: { ammo: 5, color: '#222', cooldown: 15, weight: 0 }, // Mặc định không drop
-
-    // --- HẠNG S (SIÊU HIẾM: 8%) ---
-    // Deathray quá mạnh (quét 180 độ), chỉ nên xuất hiện như một "Jackpot"
+    NORMAL: { ammo: 5, color: '#222', cooldown: 15, weight: 0 }, 
     DEATHRAY: { ammo: 1, color: '#9900ff', cooldown: 180, weight: 5, desc: "CỰC HIẾM: Quét sạch 180 độ." },
-    // Laser bắn xuyên tường, rất khó né nếu vào tay cao thủ
     LASER: { ammo: 1, color: '#00ffff', cooldown: 90, weight: 3, desc: "Bắn xuyên bản đồ." },
-
-    // --- HẠNG A (CAO CẤP: 17%) ---
-    // Khiên giúp lật kèo khi còn ít máu
     SHIELD: { ammo: 1, color: '#ffffff', cooldown: 0, weight: 8, desc: "Phản đạn & Chặn Laser (5s)." },
-    // Tên lửa đuổi cần không gian rộng, vẫn có thể né được
     MISSILE: { ammo: 1, color: '#ff4400', cooldown: 120, weight: 9, desc: "Tìm đường, dội tường." },
-
-    // --- HẠNG B (TIÊU CHUẨN: 40%) ---
-    // Gatling gây áp lực tốt nhưng dễ hết đạn
     GATLING: { ammo: 10, color: '#ff00ff', cooldown: 4, weight: 12, desc: "Súng máy nhanh." },
-    // Triple kiểm soát không gian tốt
     TRIPLE: { ammo: 1, color: '#4488ff', cooldown: 60, weight: 14, desc: "Shotgun 3 tia." },
-    // Frag gây hỗn loạn, tốt cho việc spam góc tường
     FRAG: { ammo: 1, color: '#ffaa00', cooldown: 60, weight: 14, desc: "Nổ ra 13 mảnh (Chờ 3s)." },
-
-    // --- HẠNG C (PHỔ THÔNG: 35%) ---
-    // Mìn ép đối thủ phải nhìn đường, không quá mạnh trực tiếp
     MINE: { ammo: 1, color: '#000000', cooldown: 60, weight: 15, desc: "Đặt mìn tàng hình (3s)." },
-    // Flame xuất hiện nhiều nhất để ép 2 bên lao vào nhau (cận chiến)
     FLAME: { ammo: 40, color: '#ff5722', cooldown: 3, weight: 20, desc: "Phun lửa tầm gần." }
 };
 
-// THÊM ĐOẠN NÀY ĐỂ LƯU CẤU HÌNH MẶC ĐỊNH
 const DEFAULT_DROP_RATES = {
-    DEATHRAY: 3,
-    LASER: 5,
-    SHIELD: 8,
-    MISSILE: 9,
-    GATLING: 12,
-    TRIPLE: 14,
-    FRAG: 14,
-    MINE: 15,
-    FLAME: 20
+    DEATHRAY: 3, LASER: 5, SHIELD: 8, MISSILE: 9, GATLING: 12, TRIPLE: 14, FRAG: 14, MINE: 15, FLAME: 20
 };
 
 const POWERUP_TYPES = ['LASER', 'FRAG', 'GATLING', 'TRIPLE', 'DEATHRAY', 'SHIELD', 'MINE', 'MISSILE', 'FLAME'];
 let pendingWeights = {}; 
+
+// [UPDATE] HỆ THỐNG ÂM THANH
+// Đảm bảo tên file trong thư mục sounds khớp với tên ở đây
+const SOUND_ASSETS = {
+    shoot: 'sounds/shoot.mp3',       // Tiếng đạn thường
+    explode: 'sounds/explosion.mp3', // Tiếng nổ
+    powerup: 'sounds/collect.mp3',   // Tiếng ăn đồ
+    laser: 'sounds/laser.mp3',       // Tiếng súng Laser (MỚI)
+    deathray: 'sounds/death_ray.mp3' // Tiếng súng Deathray (MỚI)
+};
+
+function playSound(name, volume = 1.0) {
+    if (!SOUND_ASSETS[name]) return;
+    const sfx = new Audio(SOUND_ASSETS[name]);
+    sfx.volume = volume;
+    // Xử lý lỗi nếu trình duyệt chặn tự động phát
+    sfx.play().catch(e => { /* Bỏ qua lỗi console nếu chưa tương tác */ });
+}
 
 // --- MATH & UTILS HELPERS ---
 function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }

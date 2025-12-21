@@ -421,6 +421,10 @@ class Tank {
             if(p.active && Math.hypot(this.x-p.x, this.y-p.y)<20) {
                 if (this.weaponType !== 'NORMAL') continue;
                 if (p.type === 'SHIELD') { this.activeShield = false; }
+                
+                // [UPDATE] ÂM THANH NHẶT ĐỒ
+                if (typeof playSound === 'function') playSound('powerup', 1.0);
+
                 p.active = false; this.setWeapon(p.type); createHitEffect(this.x,this.y);
             }
         }
@@ -449,9 +453,11 @@ class Tank {
         let midX = this.x + Math.cos(this.angle) * (muzzleDist/2); let midY = this.y + Math.sin(this.angle) * (muzzleDist/2);
         let ignoreWallBlock = (this.weaponType === 'DEATHRAY' || this.weaponType === 'LASER' || this.weaponType === 'FLAME');
         
+        // [UPDATE] FIX AI/PLAYER TỰ HỦY: Nếu nòng chạm tường -> Kẹt đạn + Spark (Không nổ)
         if (!ignoreWallBlock) {
             if(checkWallCollision(tipX, tipY, 2) || checkWallCollision(midX, midY, 2)) {
-                createExplosion(this.x, this.y, this.color); this.takeDamage(this, null); return; 
+                createSparks(tipX, tipY, "#888", 5); 
+                return; 
             }
         }
 
@@ -482,6 +488,17 @@ class Tank {
                 bullets.push(new Bullet(mx,my,this.angle,this.color, 'normal', this)); this.cooldownTimer = WEAPONS.NORMAL.cooldown;
             }
         }
+        
+        // [UPDATE] ÂM THANH BẮN THÔNG MINH
+        // Chọn âm thanh dựa trên loại súng
+        if (typeof playSound === 'function') {
+            let sfxName = 'shoot'; 
+            if (this.weaponType === 'LASER') sfxName = 'laser';
+            else if (this.weaponType === 'DEATHRAY') sfxName = 'deathray';
+            
+            playSound(sfxName, 0.6);
+        }
+
         if (this.weaponType !== 'DEATHRAY') this.ammo--;
     }
     draw() {
