@@ -84,6 +84,7 @@ function renderWeaponSettings() {
     const mainPanel = document.getElementById('mainSettingsPanel');
     if (!mainPanel) return;
     
+    // 1. Phần đầu: Header và Game Rules (Luôn hiển thị)
     let html = `
         <div class="settings-header-fixed"><div class="panel-header" style="margin:0; border:none; padding:0;">MATCH CONFIGURATION</div></div>
         <div class="settings-scroll-area">
@@ -92,18 +93,28 @@ function renderWeaponSettings() {
                 <div class="compact-row"><span class="compact-label">Spawn Interval</span><div style="flex:1; margin:0 10px;"><input type="range" min="1" max="60" value="${gameSettings.spawnTime}" class="custom-range" oninput="window.updateCustom(this, 'time')"></div><span class="compact-val" id="valSpawnTime">${gameSettings.spawnTime}s</span></div>
                 <div class="compact-row"><span class="compact-label">Max Items</span><div style="flex:1; margin:0 10px;"><input type="range" min="1" max="50" value="${gameSettings.maxItems}" class="custom-range" oninput="window.updateCustom(this, 'max')"></div><span class="compact-val" id="valMaxItems">${gameSettings.maxItems}</span></div>
             </div>
+    `;
+
+    // 2. [LOGIC MỚI] Chỉ hiển thị Settings AI nếu đang ở chế độ PVE (Player vs Bot)
+    if (gameMode === 'pve') {
+        html += `
             <div class="settings-group">
                 <div class="group-title">MAGIC AI BRAIN</div>
                 <div class="compact-row"><span class="compact-label">DIFFICULTY</span><div style="text-align:right;"><button class="cycle-btn" onclick="window.cycleAI('difficulty')">${aiConfig.difficulty}</button><div style="font-size:9px; color:#666; margin-top:2px;">${getDiffDesc()}</div></div></div>
                 <div class="compact-row" style="margin-top:5px;"><span class="compact-label">BEHAVIOR</span><button class="cycle-btn" onclick="window.cycleAI('personality')">${AI_PERSONALITY[aiConfig.personality].label}</button></div>
             </div>
-            <div class="settings-group"><div class="group-title">WEAPON DROP CHANCE (%)</div><div id="weaponListInternal">
-    `;
+        `;
+    }
+
+    // 3. Phần cuối: Danh sách vũ khí (Luôn hiển thị)
+    html += `<div class="settings-group"><div class="group-title">WEAPON DROP CHANCE (%)</div><div id="weaponListInternal">`;
+    
     let weaponListHtml = "";
     POWERUP_TYPES.forEach(key => {
         const w = WEAPONS[key]; pendingWeights[key] = w.weight;
         weaponListHtml += `<div class="weapon-row"><div class="weapon-name" style="color:${w.color}">${key}</div><input type="range" min="0" max="100" value="${w.weight}" class="custom-range" id="slider_${key}" oninput="window.updateCustom(this, 'weaponWeight', '${key}')"><input type="number" min="0" max="100" value="${w.weight}" class="custom-num-input" id="input_${key}" oninput="window.updateCustom(this, 'weaponWeightInput', '${key}')"></div>`;
     });
+    
     html += weaponListHtml + `
         </div>
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
@@ -122,7 +133,7 @@ function renderWeaponSettings() {
                 </button>
             </div>
         </div>
-    </div></div>`; // Đóng các thẻ div
+    </div></div>`; // Đóng các thẻ div còn lại
     
     mainPanel.innerHTML = html;
     validateTotalDropRate();
