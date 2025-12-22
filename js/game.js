@@ -1,4 +1,33 @@
-// --- NEW HELPER: TÍNH TOÁN PHẢN XẠ (Physics) ---
+// --- KHỞI TẠO CANVAS PHỤ CHO HIỆU ỨNG BÓNG TỐI (OFF-SCREEN CANVAS) ---
+const shadowCanvas = document.createElement('canvas');
+shadowCanvas.width = 1365;
+shadowCanvas.height = 780;
+const shadowCtx = shadowCanvas.getContext('2d');
+
+// --- TẠO TEXTURE BỤI (NOISE) ---
+const noiseCanvas = document.createElement('canvas');
+const noiseSize = 256; 
+noiseCanvas.width = noiseSize; 
+noiseCanvas.height = noiseSize;
+const noiseCtx = noiseCanvas.getContext('2d');
+
+function generateNoiseTexture() {
+    noiseCtx.clearRect(0, 0, noiseSize, noiseSize);
+    noiseCtx.fillStyle = "rgba(0, 0, 0, 0.0)";
+    noiseCtx.fillRect(0, 0, noiseSize, noiseSize);
+    
+    // [CỰC KỲ MỜ]: Bụi chỉ còn mức 0.01 để không làm đục ánh sáng
+    for (let i = 0; i < 1500; i++) {
+        let x = Math.random() * noiseSize;
+        let y = Math.random() * noiseSize;
+        let alpha = Math.random() * 0.01; 
+        noiseCtx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
+        noiseCtx.fillRect(x, y, 1, 1);
+    }
+}
+generateNoiseTexture();
+
+// --- HELPER PHYSICS ---
 function calculateBounce(x, y, vx, vy, radius) {
     let hitX = checkWallCollision(x + vx, y, radius);
     if (hitX) { vx = -vx; }
@@ -7,7 +36,14 @@ function calculateBounce(x, y, vx, vy, radius) {
     return { vx, vy, hit: hitX || hitY };
 }
 
-// --- AI SYSTEM (UPGRADED WITH DODGE) ---
+function hexToRgba(hex, alpha) {
+    let r = parseInt(hex.slice(1, 3), 16);
+    let g = parseInt(hex.slice(3, 5), 16);
+    let b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// --- AI SYSTEM ---
 function updateAI(ai, opponent) {
     if(ai.dead || opponent.dead) return;
     const diff = AI_DIFFICULTY[aiConfig.difficulty] || AI_DIFFICULTY.EASY;
@@ -50,8 +86,6 @@ function updateAI(ai, opponent) {
             let error = (Math.random() - 0.5) * diff.aimErr;
             rotateTowards(ai, ai.aiIdealAngle + error, 0.25); 
             if (ai.aiAimLockTimer <= 0 || Math.abs(ai.aiIdealAngle - ai.angle) < 0.1) { 
-                
-                // [FIX AI] Kiểm tra nếu nòng súng chạm tường thì không bắn
                 let muzzleDist = 20; 
                 let tipX = ai.x + Math.cos(ai.angle) * muzzleDist;
                 let tipY = ai.y + Math.sin(ai.angle) * muzzleDist;
@@ -261,6 +295,200 @@ function rotateTowards(obj, targetAngle, speed) {
     obj.angle += Math.sign(diff) * Math.min(Math.abs(diff), speed);
 }
 
+// --- RAYCASTING LOGIC ---
+function getIntersection(ray, segment) {
+    let r_px = ray.a.x; let r_py = ray.a.y;
+    let r_dx = ray.b.x - ray.a.x; let r_dy = ray.b.y - ray.a.y;
+    let s_px = segment.a.x; let s_py = segment.a.y;
+    let s_dx = segment.b.x - segment.a.x; let s_dy = segment.b.y - segment.a.y;
+
+    let r_mag = Math.sqrt(r_dx*r_dx + r_dy*r_dy);
+    let s_mag = Math.sqrt(s_dx*s_dx + s_dy*s_dy);
+    if(r_dx/r_mag==s_dx/s_mag && r_dy/r_mag==s_dy/s_mag) return null;
+
+    let T2 = (r_dx*(s_py-r_py) + r_dy*(r_px-s_px))/(s_dx*r_dy - s_dy*r_dx);
+    let T1 = (s_px+s_dx*T2-r_px)/r_dx;
+    if(isNaN(T1)) T1 = (s_py+s_dy*T2-r_py)/r_dy;
+
+    if(T1<0) return null;
+    if(T2<0 || T2>1) return null;
+
+    return { x: r_px+r_dx*T1, y: r_py+r_dy*T1, param: T1 };
+}
+
+function castRays(sourceX, sourceY, startAngle, endAngle, radius) {
+    let points = [];
+    let segments = [];
+    segments.push({a:{x:0,y:0}, b:{x:canvas.width,y:0}});
+    segments.push({a:{x:canvas.width,y:0}, b:{x:canvas.width,y:canvas.height}});
+    segments.push({a:{x:canvas.width,y:canvas.height}, b:{x:0,y:canvas.height}});
+    segments.push({a:{x:0,y:canvas.height}, b:{x:0,y:0}});
+    
+    for(let w of walls) {
+        if (Math.hypot(w.x - sourceX, w.y - sourceY) > radius + 100) continue;
+        segments.push({a:{x:w.x,y:w.y}, b:{x:w.x+w.w,y:w.y}});
+        segments.push({a:{x:w.x+w.w,y:w.y}, b:{x:w.x+w.w,y:w.y+w.h}});
+        segments.push({a:{x:w.x+w.w,y:w.y+w.h}, b:{x:w.x,y:w.y+w.h}});
+        segments.push({a:{x:w.x,y:w.y+w.h}, b:{x:w.x,y:w.y}});
+    }
+
+    for(let angle = startAngle; angle <= endAngle; angle += 0.08) {
+        let dx = Math.cos(angle);
+        let dy = Math.sin(angle);
+        let closest = null;
+        let minT = radius;
+        let ray = {a:{x:sourceX, y:sourceY}, b:{x:sourceX+dx*radius, y:sourceY+dy*radius}};
+
+        for(let seg of segments) {
+            let intersect = getIntersection(ray, seg);
+            if(intersect) {
+                if(intersect.param < minT) {
+                    minT = intersect.param;
+                    closest = intersect;
+                }
+            }
+        }
+        if(closest) points.push(closest);
+        else points.push({x: sourceX+dx*radius, y: sourceY+dy*radius});
+    }
+    return points;
+}
+
+// --- HỆ THỐNG ÁNH SÁNG (PHIÊN BẢN TRONG SUỐT NHƯ AURA) ---
+function renderLighting() {
+    shadowCtx.clearRect(0, 0, shadowCanvas.width, shadowCanvas.height);
+
+    if (isNightMode) {
+        shadowCtx.fillStyle = "rgba(0, 0, 0, 0.985)"; 
+        shadowCtx.fillRect(0, 0, shadowCanvas.width, shadowCanvas.height);
+
+        const CONE_WIDTH = Math.PI / 3; 
+        const RANGE = 450;             
+        const dustOffset = (Date.now() / 50) % 256; 
+
+        const drawTankLight = (tank) => {
+            if (tank.dead) return;
+
+            let startA = tank.angle - CONE_WIDTH / 2;
+            let endA = tank.angle + CONE_WIDTH / 2;
+
+            let poly = castRays(tank.x, tank.y, startA, endA, RANGE);
+
+            // --- BƯỚC 1: ĐỤC LỖ (Cắt bóng tối) ---
+            shadowCtx.globalCompositeOperation = 'destination-out';
+            
+            // Cắt Beam
+            shadowCtx.beginPath();
+            shadowCtx.moveTo(tank.x, tank.y);
+            for (let p of poly) shadowCtx.lineTo(p.x, p.y);
+            shadowCtx.closePath();
+            
+            // Gradient Cắt mềm mại
+            let cutGrd = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, RANGE);
+            cutGrd.addColorStop(0, "rgba(0,0,0,1)");     
+            cutGrd.addColorStop(0.7, "rgba(0,0,0,0.8)"); // Giảm độ cắt ở xa
+            cutGrd.addColorStop(1, "rgba(0,0,0,0)");     
+            shadowCtx.fillStyle = cutGrd;
+            shadowCtx.fill();
+
+            // Cắt Aura
+            shadowCtx.beginPath();
+            shadowCtx.arc(tank.x, tank.y, 50, 0, Math.PI * 2); 
+            let haloCut = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, 50);
+            haloCut.addColorStop(0, "rgba(0,0,0,1)"); 
+            haloCut.addColorStop(1, "rgba(0,0,0,0)");
+            shadowCtx.fillStyle = haloCut;
+            shadowCtx.fill();
+
+            // --- BƯỚC 2: TÔ MÀU (SIÊU TRONG SUỐT) ---
+            shadowCtx.globalCompositeOperation = 'lighter'; 
+
+            // A. Vẽ Bụi (Texture siêu mờ)
+            shadowCtx.save(); 
+            shadowCtx.beginPath();
+            shadowCtx.moveTo(tank.x, tank.y);
+            for (let p of poly) shadowCtx.lineTo(p.x, p.y);
+            shadowCtx.closePath();
+            shadowCtx.clip(); 
+
+            let pattern = shadowCtx.createPattern(noiseCanvas, 'repeat');
+            let moveX = tank.x + Math.cos(tank.angle) * dustOffset; 
+            let moveY = tank.y + Math.sin(tank.angle) * dustOffset;
+            
+            shadowCtx.translate(moveX, moveY); 
+            shadowCtx.fillStyle = pattern;
+            shadowCtx.fillRect(-moveX, -moveY, canvas.width, canvas.height); 
+            shadowCtx.restore(); 
+
+            // B. Vẽ Ánh Sáng Trắng (MỨC 0.02 - Trong suốt như kính)
+            shadowCtx.beginPath();
+            shadowCtx.moveTo(tank.x, tank.y);
+            for (let p of poly) shadowCtx.lineTo(p.x, p.y);
+            shadowCtx.closePath();
+
+            let colorGrd = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, RANGE);
+            
+            // [CHỈNH SỬA QUAN TRỌNG NHẤT]
+            // Alpha 0.02: Cực thấp để không bị đục
+            // Stop 0.7: Màu tắt sớm hơn phạm vi cắt, giúp đuôi đèn hoàn toàn trong veo
+            colorGrd.addColorStop(0, "rgba(255, 255, 255, 0.02)"); 
+            colorGrd.addColorStop(0.7, "rgba(0,0,0,0)");
+            
+            shadowCtx.fillStyle = colorGrd;
+            shadowCtx.fill();
+
+            // C. Aura mờ (Mức 0.04 - Hơi sáng hơn đèn một chút để nổi bật xe)
+            shadowCtx.beginPath();
+            shadowCtx.arc(tank.x, tank.y, 50, 0, Math.PI * 2);
+            let haloColor = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, 50);
+            haloColor.addColorStop(0, "rgba(255, 255, 255, 0.04)"); 
+            haloColor.addColorStop(1, "rgba(0,0,0,0)");
+            shadowCtx.fillStyle = haloColor;
+            shadowCtx.fill();
+        };
+
+        drawTankLight(p1);
+        drawTankLight(p2);
+
+        // --- CÁC HIỆU ỨNG KHÁC ---
+        shadowCtx.globalCompositeOperation = 'destination-out';
+        const drawSimpleHalo = (x, y, radius, intensity) => {
+            shadowCtx.beginPath();
+            shadowCtx.arc(x, y, radius, 0, Math.PI * 2);
+            let grd = shadowCtx.createRadialGradient(x, y, 0, x, y, radius);
+            grd.addColorStop(0, `rgba(0,0,0,${intensity})`);
+            grd.addColorStop(1, "rgba(0,0,0,0)");
+            shadowCtx.fillStyle = grd;
+            shadowCtx.fill();
+        };
+
+        if (p1.flashTimer > 0) { drawSimpleHalo(p1.x, p1.y, 400, p1.flashTimer/10); p1.flashTimer--; }
+        if (p2.flashTimer > 0) { drawSimpleHalo(p2.x, p2.y, 400, p2.flashTimer/10); p2.flashTimer--; }
+
+        for (let b of bullets) {
+            let r = (b.type === 'missile' || b.type === 'flame') ? 100 : 50; 
+            if (b.type === 'mine' && !b.visible) continue;
+            drawSimpleHalo(b.x, b.y, r, 0.8);
+        }
+        for (let p of particles) {
+            if (p.type === 'fire' || p.type === 'flash') drawSimpleHalo(p.x, p.y, p.size * 8, p.life);
+        }
+        for (let l of activeLasers) {
+            if(l.active) {
+                shadowCtx.beginPath(); 
+                shadowCtx.lineCap = "round";
+                shadowCtx.moveTo(l.start.x, l.start.y); 
+                shadowCtx.lineTo(l.end.x, l.end.y);
+                shadowCtx.lineWidth = 35; 
+                shadowCtx.strokeStyle = "rgba(0,0,0,0.6)"; 
+                shadowCtx.stroke();
+            }
+        }
+        
+        shadowCtx.globalCompositeOperation = 'source-over';
+    }
+}
+
 // --- MAZE & GENERATION ---
 function generateMaze() {
     walls=[]; wallPath=new Path2D(); powerups=[]; activeLasers=[]; tracks=[];
@@ -342,12 +570,26 @@ function loop() {
     animationId = requestAnimationFrame(loop); if(gamePaused) return;
     let dx=0, dy=0; if(shakeAmount>0){ dx=(Math.random()-0.5)*shakeAmount; dy=(Math.random()-0.5)*shakeAmount; shakeAmount*=0.9; if(shakeAmount<0.5)shakeAmount=0; }
     
-    ctx.save(); ctx.translate(dx,dy); ctx.clearRect(-dx,-dy,canvas.width,canvas.height); ctx.fillStyle="#444"; ctx.fill(wallPath);
+    // 1. XÓA MÀN HÌNH CHÍNH & VẼ TƯỜNG (LỚP ĐÁY)
+    ctx.save(); ctx.translate(dx,dy); ctx.clearRect(-dx,-dy,canvas.width,canvas.height); 
+    ctx.fillStyle="#444"; ctx.fill(wallPath);
     
+    // 2. VẼ VẾT BÁNH XE (Lớp nền phụ)
     bgCtx.clearRect(0, 0, canvas.width, canvas.height); 
     for(let i=tracks.length-1; i>=0; i--) { let t = tracks[i]; t.update(); t.draw(bgCtx); if (t.life <= 0) tracks.splice(i, 1); }
 
+    // 3. TÍNH TOÁN & VẼ BÓNG TỐI (NẾU CÓ)
+    if (isNightMode) {
+        renderLighting(); 
+        // Vẽ lớp bóng tối ĐÈ LÊN tường (nhưng sẽ có lỗ thủng để lộ tường)
+        ctx.drawImage(shadowCanvas, 0, 0);
+    }
+
+    // 4. CẬP NHẬT LOGIC GAME
     timerSpawnItems--; if(timerSpawnItems <= 0) { spawnPowerUp(); timerSpawnItems = gameSettings.spawnTime * 60; }
+    
+    // 5. VẼ CÁC ĐỐI TƯỢNG "SÁNG" (ĐÈ LÊN LỚP BÓNG TỐI)
+    // Để người chơi luôn nhìn thấy vật phẩm, đạn và xe tăng
     for(let p of powerups) p.draw();
     for(let b of bullets) { if(b.type === 'mine') b.draw(); }
     for(let i=activeLasers.length-1; i>=0; i--) { let l = activeLasers[i]; l.update(); l.draw(); if(!l.active) activeLasers.splice(i, 1); }
@@ -355,15 +597,12 @@ function loop() {
     p1.update(walls, powerups); p1.draw(); updateAmmoUI(p1);
     if (p2.isAI) updateAI(p2, p1); p2.update(walls, powerups); p2.draw(); updateAmmoUI(p2);
     
+    // Update đạn & va chạm
     for(let i=bullets.length-1; i>=0; i--){
         let b=bullets[i]; b.update(walls); if(b.type !== 'mine') b.draw(); 
         if(!b.dead){ 
-            if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18) && b.owner!==p1){ 
-                p1.takeDamage(b.owner, b); 
-            }
-            else if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18) && b.owner!==p2){ 
-                p2.takeDamage(b.owner, b); 
-            }
+            if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18) && b.owner!==p1){ p1.takeDamage(b.owner, b); }
+            else if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18) && b.owner!==p2){ p2.takeDamage(b.owner, b); }
         }
         if(!b.dead && b.type==='fragment') {
                 if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18)) { p1.takeDamage(null, b); }
@@ -377,6 +616,7 @@ function loop() {
     }
 
     for(let i=particles.length-1;i>=0;i--){ let p=particles[i]; p.update(); p.draw(); if(p.life<=0) particles.splice(i,1); }
+    
     ctx.restore();
 }
 
@@ -393,40 +633,24 @@ window.startGame = function() {
 p1 = new Tank(0,0,"#4CAF50","P1",null,'ammo-p1'); 
 p2 = new Tank(0,0,"#D32F2F","P2",null,'ammo-p2');
 
-// --- HELPER: PHÁ TƯỜNG (CHO ĐẠN DRILL) ---
 function destroyWall(index) {
     if (index > -1 && index < walls.length) {
         let w = walls[index];
-
-        // === [ĐOẠN MỚI THÊM VÀO] ===
-        // Kiểm tra xem tường có phải là Biên Giới (Border) không?
-        // Nếu tọa độ x, y quá sát lề trái/trên HOẶC vượt quá lề phải/dưới -> Dừng lại, không phá.
         if (w.x < 5 || w.y < 5 || w.x + w.w > canvas.width - 5 || w.y + w.h > canvas.height - 5) {
-            // (Tuỳ chọn) Tạo tia lửa kim loại để báo hiệu va vào tường cứng
             createSparks(w.x + w.w/2, w.y + w.h/2, "#aaa", 5); 
-            return; // KHÔNG PHÁ, THOÁT HÀM NGAY
+            return; 
         }
-        // === [HẾT ĐOẠN THÊM] ===
-
-        // 1. Tạo hiệu ứng vỡ gạch tại vị trí tường
         let cx = w.x + w.w/2;
         let cy = w.y + w.h/2;
-        
-        // Tạo bụi và mảnh vỡ
         for(let k=0; k<8; k++) {
             particles.push(new Particle(cx + (Math.random()-0.5)*w.w, cy + (Math.random()-0.5)*w.h, 'debris', '#555'));
         }
         createSmoke(cx, cy);
-
-        // 2. Xóa tường khỏi mảng
         walls.splice(index, 1);
-
-        // 3. Cập nhật lại hình ảnh mê cung (wallPath)
         wallPath = new Path2D();
         for(let w of walls) {
             wallPath.rect(w.x, w.y, w.w, w.h);
         }
     }
 }
-// Xuất hàm này ra window để class Bullet có thể gọi
 window.destroyWall = destroyWall;

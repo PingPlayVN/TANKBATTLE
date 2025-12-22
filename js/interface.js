@@ -3,16 +3,16 @@ const menu = document.getElementById('menuOverlay');
 const settingsModal = document.getElementById('settingsModal');
 const guideModal = document.getElementById('guideModal');
 const modeModal = document.getElementById('modeSelectModal');
+const mapModal = document.getElementById('mapSelectModal'); // MỚI
 const deviceModal = document.getElementById('deviceSelectModal');
 const msgBox = document.getElementById('gameMessage');
 
-// --- TANK PREVIEW VARIABLES (New System) ---
+// --- TANK PREVIEW VARIABLES ---
 let menuAnimId;
 let menuMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
-// Theo dõi vị trí chuột trong Menu để xoay nòng súng
 document.addEventListener('mousemove', (e) => {
-    if (menu.style.display !== 'none') { // Chỉ theo dõi khi menu đang hiện
+    if (menu.style.display !== 'none') { 
         menuMouse.x = e.clientX;
         menuMouse.y = e.clientY;
     }
@@ -24,10 +24,12 @@ function hideAllMenus() {
     guideModal.style.display = 'none'; 
     msgBox.style.display = 'none'; 
     modeModal.style.display='none'; 
+    mapModal.style.display='none'; // Ẩn luôn Map Modal
 }
 
 function showModeSelect() { hideAllMenus(); modeModal.style.display = 'flex'; }
 function closeModeSelect() { hideAllMenus(); menu.style.display = 'flex'; }
+function closeMapSelect() { hideAllMenus(); modeModal.style.display = 'flex'; } // Back về Mode Select
 
 function selectMode(mode) {
     gameMode = mode; 
@@ -36,27 +38,35 @@ function selectMode(mode) {
     const p2Area = document.getElementById('p2ControlArea');
     const p2Header = document.getElementById('p2ControlHeader');
 
-    // Cập nhật giao diện dựa trên chế độ chơi
     if(gameMode === 'pve') { 
         if(p2NameUI) p2NameUI.innerText = "BOT"; 
         if(p2Area) p2Area.style.display = "none";
         if(p2Header) p2Header.style.display = "none";
         if (p2Set) p2Set.style.display = 'none';
-        // Bot màu xám trong preview
         drawTankPreview('previewP2', '#555555', true);
     } else { 
         if(p2NameUI) p2NameUI.innerText = "RED PLAYER"; 
         if(p2Area) p2Area.style.display = "block";
         if(p2Header) p2Header.style.display = "block";
         if (p2Set) p2Set.style.display = 'flex';
-        // Player 2 màu đỏ trong preview
         drawTankPreview('previewP2', '#D32F2F', true);
     }
+    
+    // THAY ĐỔI: Không vào game ngay, mà hiện bảng chọn MAP
+    hideAllMenus();
+    mapModal.style.display = 'flex';
+}
 
-    // Dừng animation ở menu để tiết kiệm hiệu năng khi vào game
+// MỚI: Hàm xử lý chọn bản đồ
+function selectMap(type) {
+    if (type === 'night') {
+        isNightMode = true;
+    } else {
+        isNightMode = false;
+    }
+
     if (menuAnimId) cancelAnimationFrame(menuAnimId);
-
-    window.startGame(); // Gọi hàm bắt đầu game từ game.js
+    window.startGame(); // Bây giờ mới vào game
     
     if (isMobile && screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('landscape').catch(e => console.log("Không thể khóa xoay:", e));
@@ -102,17 +112,11 @@ function quitToMenu() {
     if(animationId) cancelAnimationFrame(animationId); 
     gameRunning=false; gamePaused=false; 
     hideAllMenus(); 
-    
-    // Ẩn các thành phần In-Game
-    document.getElementById('bottomBar').style.display = 'none'; // Ẩn thanh điểm số
+    document.getElementById('bottomBar').style.display = 'none';
     document.getElementById('mobileControls').style.display = 'none'; 
-    
-    // Hiện Menu
     menu.style.display='flex'; 
     ctx.clearRect(0,0,canvas.width,canvas.height); 
     roundEnding=false; if(roundEndTimer) clearTimeout(roundEndTimer);
-    
-    // Bật lại Animation cho xe tăng ở Menu
     animateMenu();
 }
 
@@ -121,7 +125,6 @@ function renderWeaponSettings() {
     const mainPanel = document.getElementById('mainSettingsPanel');
     if (!mainPanel) return;
     
-    // 1. Phần đầu: Header và Game Rules
     let html = `
         <div class="settings-header-fixed"><div class="panel-header" style="margin:0; border:none; padding:0;">MATCH CONFIGURATION</div></div>
         <div class="settings-scroll-area">
@@ -132,7 +135,6 @@ function renderWeaponSettings() {
             </div>
     `;
 
-    // 2. Settings AI (Chỉ hiện khi PVE)
     if (gameMode === 'pve') {
         html += `
             <div class="settings-group">
@@ -143,7 +145,6 @@ function renderWeaponSettings() {
         `;
     }
 
-    // 3. Danh sách vũ khí
     html += `<div class="settings-group"><div class="group-title">WEAPON DROP CHANCE (%)</div><div id="weaponListInternal">`;
     
     let weaponListHtml = "";
@@ -210,7 +211,6 @@ function selectDevice(type) {
             screen.orientation.lock('landscape').catch(err => console.log("Khóa xoay không khả dụng (bỏ qua):", err));
         }
     }
-    // Bắt đầu animation ngay khi vào menu
     animateMenu();
 }
 
@@ -248,7 +248,6 @@ function setupMobileControls() {
     btnFireP2.addEventListener('pointerleave', (e) => { mobileInput.p2.fire = false; btnFireP2.style.background="rgba(0,0,0,0.05)"; });
 }
 
-// --- HELPER FUNCTIONS FOR WINDOW EXPORT ---
 function getDiffDesc() {
     switch(aiConfig.difficulty) {
         case 'EASY': return "Fast, 2 Bounces";
@@ -280,7 +279,6 @@ function updateMobileConfig(player, type, value) {
     if (type === 'swap') { mobileSettings[player].swap = value; const setEl = document.querySelector(`.${player}-set`); if(setEl) { if(value) setEl.classList.add('swapped'); else setEl.classList.remove('swapped'); } } 
     else { value = parseFloat(value); if (type === 'sensitivity') { mobileSettings[player].sensitivity = value; document.getElementById(`valSens${player === 'p1' ? 'P1' : 'P2'}`).innerText = value.toFixed(1); } else if (type === 'size') { mobileSettings[player].size = value; document.getElementById(`valSize${player === 'p1' ? 'P1' : 'P2'}`).innerText = value + '%'; const scale = value / 100; const setEl = document.querySelector(`.${player}-set`); if(setEl) setEl.style.transform = `scale(${scale})`; } }
 }
-
 function resetDropRates() {
     Object.keys(DEFAULT_DROP_RATES).forEach(key => {
         const val = DEFAULT_DROP_RATES[key];
@@ -293,16 +291,12 @@ function resetDropRates() {
     validateTotalDropRate();
 }
 
-// --- TANK PREVIEW LOGIC (CLEANED UP) ---
+// --- TANK PREVIEW LOGIC ---
 function drawTankPreview(canvasId, color, isP2) {
     const cvs = document.getElementById(canvasId);
     if (!cvs) return;
     const ctx = cvs.getContext('2d');
-    
-    // Xóa canvas
     ctx.clearRect(0, 0, cvs.width, cvs.height);
-    
-    // Tính toán góc xoay dựa trên vị trí chuột
     const rect = cvs.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -312,74 +306,44 @@ function drawTankPreview(canvasId, color, isP2) {
     ctx.translate(cvs.width / 2, cvs.height / 2);
     ctx.scale(1.8, 1.8);
 
-    // 1. VẼ THÂN XE (Cố định hướng)
-    // P1 hướng lên góc phải (-45 độ), P2 hướng lên góc trái (-135 độ)
     const bodyAngle = isP2 ? -Math.PI * 0.75 : -Math.PI * 0.25;
     ctx.rotate(bodyAngle);
 
-    // Bóng đổ
     ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
-    // Bánh xích
-    ctx.fillStyle = "#222"; ctx.fillRect(-14, -14, 28, 8); // Trái
-    ctx.fillRect(-14, 6, 28, 8);  // Phải
+    ctx.fillStyle = "#222"; ctx.fillRect(-14, -14, 28, 8); 
+    ctx.fillRect(-14, 6, 28, 8);  
     ctx.fillStyle = "#111"; 
     for(let i=-12; i<12; i+=4) { ctx.fillRect(i, -14, 2, 8); ctx.fillRect(i, 6, 2, 8); }
-    // Thân
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     ctx.fillStyle = "#333"; ctx.fillRect(-12, -7, 24, 14);
-    // Mũi xe (Màu đặc trưng)
     ctx.fillStyle = color;
     ctx.beginPath(); ctx.moveTo(-10, -5); ctx.lineTo(10, -5); ctx.lineTo(12, 0); ctx.lineTo(10, 5); ctx.lineTo(-10, 5); ctx.fill();
 
-    // 2. VẼ THÁP PHÁO (Xoay theo chuột)
-    // Quay ngược lại bodyAngle để về góc 0, sau đó quay theo chuột
     ctx.rotate(-bodyAngle); 
     ctx.rotate(angleToMouse); 
-
     drawTurret(ctx, 'NORMAL', color); 
 
-    // Điểm trang trí
     ctx.fillStyle = color; ctx.filter = "brightness(80%)"; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill(); ctx.filter = "none";
     ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.beginPath(); ctx.arc(3, -2, 2, 0, Math.PI*2); ctx.fill();
-
     ctx.restore();
 }
 
 function animateMenu() {
-    // Nếu menu đang ẩn thì không vẽ
     if (menu.style.display === 'none') return;
-
-    // Màu P2 thay đổi tùy chế độ (PvE là màu xám, PvP là màu đỏ)
-    // Nếu chưa chọn mode, mặc định là đỏ
     const isPvE = (typeof gameMode !== 'undefined' && gameMode === 'pve');
     const p2Color = isPvE ? '#555555' : '#D32F2F';
-
     drawTankPreview('previewP1', '#4CAF50', false);
     drawTankPreview('previewP2', p2Color, true);
-
     menuAnimId = requestAnimationFrame(animateMenu);
 }
 
-// Window Exports for HTML OnClick
-window.selectDevice = selectDevice;
-window.selectMode = selectMode;
-window.openGuide = openGuide;
-window.closeGuide = closeGuide;
-window.openSettings = openSettings;
-window.closeSettings = closeSettings;
-window.quitToMenu = quitToMenu;
-window.updateCustom = updateCustom;
-window.applyDropRates = applyDropRates;
-window.showModeSelect = showModeSelect;
-window.closeModeSelect = closeModeSelect;
-window.cycleAI = cycleAI;
-window.remap = remap;
-window.updateMobileConfig = updateMobileConfig;
-window.resetDropRates = resetDropRates;
+window.selectDevice = selectDevice; window.selectMode = selectMode; window.selectMap = selectMap; window.closeMapSelect = closeMapSelect;
+window.openGuide = openGuide; window.closeGuide = closeGuide; window.openSettings = openSettings; window.closeSettings = closeSettings; window.quitToMenu = quitToMenu;
+window.updateCustom = updateCustom; window.applyDropRates = applyDropRates; window.showModeSelect = showModeSelect; window.closeModeSelect = closeModeSelect;
+window.cycleAI = cycleAI; window.remap = remap; window.updateMobileConfig = updateMobileConfig; window.resetDropRates = resetDropRates;
 window.restartMatch = function() { scores = { p1: 0, p2: 0 }; document.getElementById('s1').innerText="0"; document.getElementById('s2').innerText="0"; closeSettings(); window.startGame(); }
 
-// Key Listeners
 window.addEventListener('keydown', e => { 
     if (remapping) { e.preventDefault(); controls[remapping.player][remapping.action] = e.code; remapping.btn.innerText = e.code; remapping.btn.classList.remove("listening"); remapping = null; return; }
     keys[e.code] = true; 
@@ -388,7 +352,4 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-// Bắt đầu vẽ menu lần đầu tiên (nếu không chọn device)
-// Nếu chọn device, nó sẽ được gọi lại trong selectDevice
-// Nhưng để đảm bảo xe tăng hiện ngay khi load trang trên PC, ta gọi 1 lần ở đây
 animateMenu();

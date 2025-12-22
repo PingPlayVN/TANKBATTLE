@@ -8,6 +8,9 @@ const bgCtx = bgCanvas.getContext('2d');
 // Global Game State
 let gameRunning = false, gamePaused = false, roundEnding = false, roundEndTimer = null;
 let gameMode = 'pvp';
+// MỚI: Biến kiểm tra chế độ ban đêm
+let isNightMode = false;
+
 let isMobile = false; 
 let remapping = null;
 let scores = { p1: 0, p2: 0 };
@@ -62,38 +65,21 @@ const RELOAD_TIME = 75;
 
 const WEAPONS = {
     NORMAL:   { ammo: 5,  color: '#222',    cooldown: 15,  weight: 0 }, 
-    
-    // --- TIER S: CỰC HIẾM (Game Enders) ---
     DEATHRAY: { ammo: 1,  color: '#9900ff', cooldown: 180, weight: 3,  desc: "CỰC HIẾM: Quét sạch 180 độ." },
     LASER:    { ammo: 1,  color: '#00ffff', cooldown: 90,  weight: 5,  desc: "Bắn xuyên bản đồ." },
     SHIELD:   { ammo: 1,  color: '#ffffff', cooldown: 0,   weight: 8,  desc: "Phản đạn & Chặn Laser (5s)." },
-    
-    // --- TIER A: CHIẾN THUẬT (Tactical) ---
     MISSILE:  { ammo: 1,  color: '#ff4400', cooldown: 120, weight: 8,  desc: "Tìm đường, dội tường." },
     DRILL:    { ammo: 3,  color: '#ffc107', cooldown: 45,  weight: 10, desc: "Mũi Khoan: Phá 5 lớp tường & Nảy." },
-    
-    // --- TIER B: GIAO TRANH (Combat) ---
     GATLING:  { ammo: 10, color: '#ff00ff', cooldown: 4,   weight: 12, desc: "Súng máy nhanh." },
     TRIPLE:   { ammo: 1,  color: '#4488ff', cooldown: 60,  weight: 12, desc: "Shotgun 3 tia." },
     FLAME:    { ammo: 40, color: '#ff5722', cooldown: 3,   weight: 12, desc: "Phun lửa tầm gần." },
-    
-    // --- TIER C: PHỔ THÔNG (Common) ---
     FRAG:     { ammo: 1,  color: '#ffaa00', cooldown: 60,  weight: 15, desc: "Nổ ra 13 mảnh (Chờ 3s)." },
     MINE:     { ammo: 1,  color: '#000000', cooldown: 60,  weight: 15, desc: "Đặt mìn tàng hình (3s)." }
 };
 
-// Tổng cộng: 3+5+8+8+10+12+12+12+15+15 = 100%
 const DEFAULT_DROP_RATES = {
-    DEATHRAY: 3, 
-    LASER: 5, 
-    SHIELD: 8, 
-    MISSILE: 8, 
-    DRILL: 10, 
-    GATLING: 12, 
-    TRIPLE: 12, 
-    FLAME: 12, 
-    FRAG: 15, 
-    MINE: 15
+    DEATHRAY: 3, LASER: 5, SHIELD: 8, MISSILE: 8, DRILL: 10, 
+    GATLING: 12, TRIPLE: 12, FLAME: 12, FRAG: 15, MINE: 15
 };
 
 const POWERUP_TYPES = ['LASER', 'FRAG', 'GATLING', 'TRIPLE', 'DEATHRAY', 'SHIELD', 'MINE', 'MISSILE', 'FLAME', 'DRILL'];
@@ -140,7 +126,7 @@ function hasLineOfSight(x1, y1, x2, y2) {
     return true;
 }
 
-// Pathfinding functions
+// Pathfinding (Giữ nguyên như cũ)
 function getAStarPath(startX, startY, targetX, targetY) {
     let cols = Math.floor(canvas.width / cellSize);
     let rows = Math.floor(canvas.height / cellSize);
