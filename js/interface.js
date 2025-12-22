@@ -353,3 +353,30 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => keys[e.code] = false);
 
 animateMenu();
+
+// --- CẬP NHẬT CUỐI FILE interface.js ---
+
+// 1. CHẶN ZOOM KHI CHẠM 2 LẦN (DOUBLE TAP)
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+    }
+    lastTouchEnd = now;
+}, { passive: false });
+
+// 2. CHẶN ZOOM KHI DÙNG 2 NGÓN TAY (PINCH ZOOM)
+document.addEventListener('touchmove', function (event) {
+    if (event.scale !== 1) { 
+        event.preventDefault(); 
+    }
+}, { passive: false });
+
+// 3. CHẶN CÁC SỰ KIỆN CỬ CHỈ CỦA IOS (Gesture Events)
+document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+
+// 4. CHẶN CLICK CHUỘT PHẢI / MENU NGỮ CẢNH
+document.addEventListener('contextmenu', event => event.preventDefault());
