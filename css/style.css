@@ -1,11 +1,25 @@
 /* --- CSS CỐT LÕI & RESPONSIVE --- */
 body { 
-    margin: 0; background-color: #050505; 
+    margin: 0; 
+    background-color: #050505; 
     font-family: 'Segoe UI', 'Arial Black', sans-serif; 
     height: 100vh; height: 100dvh; width: 100vw;
-    user-select: none; overflow: hidden; touch-action: none; 
-    position: fixed; top: 0; left: 0;
-    -webkit-tap-highlight-color: transparent;
+    position: fixed; top: 0; left: 0; /* Khóa cuộn trang */
+    
+    /* --- CÁC DÒNG CODE CHỐNG ZOOM TRÊN IOS --- */
+    touch-action: none; /* Tắt hoàn toàn hành động chạm mặc định */
+    user-select: none;  /* Không cho bôi đen văn bản */
+    -webkit-user-select: none; /* Safari */
+    -webkit-touch-callout: none; /* Tắt menu hiện ra khi ấn giữ lâu */
+    -webkit-text-size-adjust: none; /* Không tự phóng to chữ */
+    -webkit-tap-highlight-color: transparent; /* Tắt màu xanh khi ấn nút */
+    overflow: hidden;
+}
+
+#mobileControls, .d-pad, .action-btn {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* MÀN HÌNH YÊU CẦU XOAY */
