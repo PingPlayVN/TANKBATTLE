@@ -38,18 +38,25 @@
 
     <div id="menuOverlay">
         <div class="main-title-box"><span class="title-prefix">WindHouse</span><h1 class="game-title">Tank Battle</h1></div>
-        <div class="controls-container">
-            <div class="player-card-ui p1">
-                <div class="p-label">PLAYER 1</div>
-                <div class="ctrl-row">Move <span class="key-cap">↑</span><span class="key-cap">↓</span><span class="key-cap">←</span><span class="key-cap">→</span></div>
-                <div class="ctrl-row">Fire <span class="key-cap" style="min-width:60px;">K</span></div>
-            </div>
-            <div class="player-card-ui p2">
-                <div class="p-label">PLAYER 2</div>
-                <div class="ctrl-row">Move <span class="key-cap">E</span><span class="key-cap">D</span><span class="key-cap">S</span><span class="key-cap">F</span></div>
-                <div class="ctrl-row">Fire <span class="key-cap" style="min-width:60px;">Q</span></div>
-            </div>
-        </div>
+    <div class="controls-container">
+    <div class="player-card-ui p1">
+        <div class="p-label">PLAYER 1</div>
+        
+        <canvas id="previewP1" width="140" height="140" class="tank-preview"></canvas>
+        
+        <div class="ctrl-row">Move <span class="key-cap">↑</span><span class="key-cap">↓</span><span class="key-cap">←</span><span class="key-cap">→</span></div>
+        <div class="ctrl-row">Fire <span class="key-cap" style="min-width:60px;">K</span></div>
+    </div>
+    
+    <div class="player-card-ui p2">
+        <div class="p-label">PLAYER 2</div>
+        
+        <canvas id="previewP2" width="140" height="140" class="tank-preview"></canvas>
+
+        <div class="ctrl-row">Move <span class="key-cap">E</span><span class="key-cap">D</span><span class="key-cap">S</span><span class="key-cap">F</span></div>
+        <div class="ctrl-row">Fire <span class="key-cap" style="min-width:60px;">Q</span></div>
+    </div>
+</div>
         <div class="btn-group">
             <button class="btn-main btn-start" onclick="window.showModeSelect()">START MISSION</button>
             <button class="btn-main btn-guide" onclick="window.openGuide()">ARMORY</button>
