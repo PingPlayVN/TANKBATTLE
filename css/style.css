@@ -127,7 +127,7 @@ h1.game-title { font-family: 'Arial Black', sans-serif; font-size: 8vh; margin: 
 /* BOTTOM BAR */
 #bottomBar { 
     background: #0a0a0a; height: 12%; max-height: 80px; min-height: 50px; width: 100%; 
-    display: flex; align-items: center; justify-content: space-between; padding: 0 20px; 
+    display: none; align-items: center; justify-content: space-between; padding: 0 20px; 
     border-top: 1px solid #333; color: #eee; z-index: 50; position: relative; flex-shrink: 0; box-sizing: border-box; 
 }
 .player-hud { display: flex; align-items: center; background: rgba(30, 30, 30, 0.5); padding: 5px 20px; height: 70%; border: 1px solid #444; transform: skewX(-20deg); position: relative; min-width: 22%; }
@@ -348,3 +348,13 @@ h1.game-title { font-family: 'Arial Black', sans-serif; font-size: 8vh; margin: 
 .cycle-btn:hover { background: #444; border-color: #888; }
 
 input[type="checkbox"] { width: 16px; height: 16px; accent-color: #d32f2f; cursor: pointer; }
+
+/* --- TANK PREVIEW UI --- */
+.tank-preview {
+    display: block;
+    margin: 0 auto 10px auto;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 70%);
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
