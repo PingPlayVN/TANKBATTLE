@@ -53,13 +53,14 @@ canvas { display: block; position: absolute; width: 100%; height: 100%; object-f
 #gameCanvas { z-index: 2; cursor: crosshair; background: transparent; }
 
 /* --- UI LAYER --- */
-#menuOverlay, #guideModal, #settingsModal, #modeSelectModal, #deviceSelectModal { 
+/* Đã thêm #mapSelectModal vào danh sách */
+#menuOverlay, #guideModal, #settingsModal, #modeSelectModal, #deviceSelectModal, #mapSelectModal { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
     display: flex; flex-direction: column; justify-content: center; align-items: center; 
     z-index: 100; color: #fff; pointer-events: auto;
 }
 #menuOverlay { background: radial-gradient(circle at center, rgba(20,20,20,0.95) 0%, rgba(5,5,5,0.98) 100%); z-index: 300; }
-#settingsModal, #guideModal, #modeSelectModal { display: none; background: rgba(0,0,0,0.96); z-index: 400; }
+#settingsModal, #guideModal, #modeSelectModal, #mapSelectModal { display: none; background: rgba(0,0,0,0.96); z-index: 400; }
 #deviceSelectModal { z-index: 500; background: #000; }
 
 /* MENU ELEMENTS */
@@ -83,6 +84,27 @@ h1.game-title { font-family: 'Arial Black', sans-serif; font-size: 8vh; margin: 
 .btn-main { padding: 15px 40px; font-size: 18px; font-family: 'Arial Black', sans-serif; text-transform: uppercase; border: none; cursor: pointer; transition: all 0.2s; position: relative; letter-spacing: 2px; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); touch-action: manipulation; }
 .btn-start { background: linear-gradient(135deg, #d32f2f, #9a0007); color: white; text-shadow: 0 2px 0 rgba(0,0,0,0.3); }
 .btn-guide { background: transparent; color: #888; border: 2px solid #333; font-size: 16px; padding: 15px 30px; }
+
+/* --- MAP SELECT CARDS (NEW) --- */
+.map-card {
+    width: 200px; height: 260px;
+    background: #1a1a1a;
+    border: 2px solid #444;
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 20px;
+    text-align: center;
+}
+.map-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.map-card.day:hover { border-color: #ffca28; background: linear-gradient(135deg, rgba(255, 202, 40, 0.1), #1a1a1a); }
+.map-card.night:hover { border-color: #29b6f6; background: linear-gradient(135deg, rgba(41, 182, 246, 0.1), #1a1a1a); }
+.map-icon { font-size: 50px; margin-bottom: 20px; }
+.map-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 10px; text-transform: uppercase; }
+.map-desc { font-size: 12px; color: #888; line-height: 1.4; }
+
 
 /* --- MOBILE CONTROLS --- */
 #mobileControls { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 80; display: none; pointer-events: none; }
