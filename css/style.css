@@ -646,3 +646,61 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: #d32f2f; curso
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
+
+/* --- TRONG FILE style.css --- */
+
+/* Làm đẹp thanh cuộn */
+.settings-scroll-area::-webkit-scrollbar { width: 6px; background: #000; }
+.settings-scroll-area::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
+
+/* Grid layout cho danh sách vũ khí */
+.weapon-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Chia làm 2 cột */
+    gap: 8px;
+    padding: 5px;
+}
+
+/* Card vũ khí xịn hơn */
+.weapon-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #444;
+    padding: 8px;
+    border-radius: 0 4px 4px 0;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.weapon-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #d32f2f; /* Highlight màu đỏ khi di chuột */
+}
+
+.w-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    font-size: 10px; 
+    font-weight: 900; 
+    text-transform: uppercase;
+}
+
+/* Style thanh trượt (Slider) mới */
+.tech-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #333;
+    outline: none;
+    border-radius: 2px;
+}
+.tech-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: #d32f2f;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 5px #d32f2f;
+}
