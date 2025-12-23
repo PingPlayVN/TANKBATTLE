@@ -16,43 +16,71 @@ class TrackMark {
 
 class Particle {
     constructor(x, y, type, color) {
-        this.x=x; this.y=y; this.type=type; this.color=color;
-        let a = Math.random()*Math.PI*2;
-        let s = (type==='spark') ? Math.random()*3+2 : Math.random()*4;
-        if (type === 'debris') s = Math.random() * 2;
-        this.vx=Math.cos(a)*s; this.vy=Math.sin(a)*s;
-        this.size = Math.random()*3+1; this.life=1.0; 
-        if(type==='beam') { this.decay=0.05; }
-        else if(type==='fragment') { this.vx*=1.5; this.vy*=1.5; this.size=3; this.decay=0.015; }
-        else if(type==='fire') { this.decay=0.03; }
-        else if(type==='smoke') { 
-            this.vx*=0.3; this.vy*=0.3; this.size=Math.random()*4+4; this.decay=0.04; 
-            if (color === '#444' || color === '#888' || !color) this.color="rgba(100,100,100,0.4)"; 
-        }
-        else if(type==='flash') { this.vx=0; this.vy=0; this.size=30; this.decay=0.2; this.color="#fff"; }
-        else if(type==='impact_ring') { this.vx=0; this.vy=0; this.size=2; this.decay=0.1; }
-        else if(type==='debris') { this.decay=0.02; this.size=Math.random()*2+1; }
-        else { this.decay=0.03; }
+        this.x = x; this.y = y; this.type = type; this.color = color;
+        let a = Math.random() * Math.PI * 2;
+        let s = Math.random() * 2 + 1; // Tốc độ cơ bản
+        
+        // Cấu hình vật lý cho từng loại
+        if (type === 'spark') { s = Math.random() * 4 + 2; this.decay = 0.04; this.size = Math.random() * 2 + 1; }
+        else if (type === 'fire') { s = Math.random() * 3; this.decay = 0.03; this.size = Math.random() * 6 + 4; }
+        else if (type === 'smoke') { s = Math.random() * 1; this.decay = 0.015; this.size = Math.random() * 8 + 6; }
+        else if (type === 'shockwave') { s = 0; this.decay = 0.08; this.size = 5; this.maxSize = 60; this.lw = 8; } // Loại mới
+        else if (type === 'flash') { s = 0; this.decay = 0.15; this.size = 40; }
+        else if (type === 'debris') { s = Math.random() * 3 + 1; this.decay = 0.02; this.size = Math.random() * 3 + 1; }
+        else { this.decay = 0.03; this.size = 3; }
+
+        this.vx = Math.cos(a) * s; 
+        this.vy = Math.sin(a) * s;
+        this.life = 1.0; 
     }
-    update() { 
-        this.x+=this.vx; this.y+=this.vy; this.life-=this.decay; 
-        if(this.type==='impact_ring') { this.size += 3; }
-        else if(this.type==='fragment' || this.type==='debris') { 
-            this.vx*=0.9; this.vy*=0.9; 
-            if(this.x<0||this.x>canvas.width)this.vx*=-1; if(this.y<0||this.y>canvas.height)this.vy*=-1;
-        } 
-        else { this.vx*=0.95; this.vy*=0.95; }
-    }
-    draw() { 
-        ctx.save(); ctx.globalAlpha=Math.max(0,this.life); 
-        if (this.type === 'impact_ring') {
-            ctx.strokeStyle = this.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.stroke();
+
+    update() {
+        this.x += this.vx; this.y += this.vy; 
+        this.life -= this.decay;
+
+        if (this.type === 'shockwave') {
+            this.size += 4; // Sóng mở rộng nhanh
+            this.lw *= 0.9; // Độ dày nét giảm dần
         } else if (this.type === 'smoke') {
-            ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+            this.x += (Math.random() - 0.5) * 0.5; // Khói bay lờ đờ
+            this.size += 0.2; // Khói to dần
+            this.vx *= 0.95; this.vy *= 0.95;
         } else {
-            ctx.fillStyle=this.color; 
-            if(this.type === 'debris') ctx.fillRect(this.x, this.y, this.size, this.size);
-            else { ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); }
+            this.vx *= 0.92; this.vy *= 0.92; // Ma sát
+        }
+    }
+
+    draw() {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.life);
+
+        if (this.type === 'shockwave') {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = this.lw;
+            ctx.stroke();
+        } 
+        else if (this.type === 'fire') {
+            // Hiệu ứng Gradient cho lửa (Tâm vàng -> Ngoài đỏ)
+            let grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+            grd.addColorStop(0, 'rgba(255, 255, 100, 1)');
+            grd.addColorStop(0.4, 'rgba(255, 100, 0, 0.8)');
+            grd.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = grd;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+        } 
+        else if (this.type === 'flash') {
+            ctx.globalCompositeOperation = "lighter";
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            ctx.globalCompositeOperation = "source-over";
+        }
+        else {
+            ctx.fillStyle = this.color;
+            if (this.type === 'debris') ctx.fillRect(this.x, this.y, this.size, this.size);
+            else { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
         }
         ctx.restore();
     }
@@ -163,7 +191,7 @@ class Bullet {
             this.vx = Math.cos(angle) * rndSpeed; this.vy = Math.sin(angle) * rndSpeed;
             this.radius = 3; this.life = 240; this.friction = 0.94; 
         } else if (type === 'mine') {
-            this.radius = 4; this.speed = 0; this.life = 3600; this.armingTime = 180; this.vx = 0; this.vy = 0; this.visible = true; 
+            this.radius = 8; this.speed = 0; this.life = 3600; this.armingTime = 180; this.vx = 0; this.vy = 0; this.visible = true; 
         } else if (type === 'flame') {
             let rndSpeed = 6 + Math.random() * 3;
             this.vx = Math.cos(angle) * rndSpeed; this.vy = Math.sin(angle) * rndSpeed;
@@ -244,8 +272,8 @@ class Bullet {
         if (this.type === 'mine') {
             if (this.armingTime > 0) { this.armingTime--; return; }
             this.visible = false; 
-            let hitP1 = !p1.dead && Math.hypot(this.x-p1.x, this.y-p1.y) < 15;
-            let hitP2 = !p2.dead && Math.hypot(this.x-p2.x, this.y-p2.y) < 15;
+            let hitP1 = !p1.dead && Math.hypot(this.x-p1.x, this.y-p1.y) < 30;
+            let hitP2 = !p2.dead && Math.hypot(this.x-p2.x, this.y-p2.y) < 30;
             if (hitP1 || hitP2) { this.dead = true; createExplosion(this.x, this.y, "red", true); if(hitP1) p1.takeDamage(null, this); if(hitP2) p2.takeDamage(null, this); }
             return; 
         }
@@ -335,7 +363,7 @@ class Bullet {
             ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(2, 2); ctx.stroke();
         }
         else if(this.type === 'fragment') { ctx.fillStyle = this.color; ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-4, 4); ctx.fill(); } 
-        else if (this.type === 'mine') { if (Math.floor(this.armingTime / 10) % 2 === 0) { ctx.fillStyle = "red"; } else { ctx.fillStyle = "#222"; } ctx.fillRect(-6,-6,12,12); ctx.strokeStyle="red"; ctx.lineWidth=1; ctx.strokeRect(-6,-6,12,12); } 
+        else if (this.type === 'mine') { if (Math.floor(this.armingTime / 10) % 2 === 0) { ctx.fillStyle = "red"; } else { ctx.fillStyle = "#222"; } ctx.fillRect(-12,-12,24,24); ctx.strokeStyle="red"; ctx.lineWidth=2; ctx.strokeRect(-12,-12,24,24); } 
         else { ctx.shadowBlur = 6; ctx.shadowColor = this.color; ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
         ctx.restore();
     }

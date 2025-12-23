@@ -133,49 +133,72 @@ function renderWeaponSettings() {
     if (!mainPanel) return;
     
     let html = `
-        <div class="settings-header-fixed"><div class="panel-header" style="margin:0; border:none; padding:0;">MATCH CONFIGURATION</div></div>
+        <div class="settings-header-fixed">
+            <div class="panel-header" style="margin:0; border:none; padding:0; color:#d32f2f;">TACTICAL CONFIG</div>
+        </div>
         <div class="settings-scroll-area">
+            
             <div class="settings-group">
-                <div class="group-title">GAME RULES</div>
-                <div class="compact-row"><span class="compact-label">Spawn Interval</span><div style="flex:1; margin:0 10px;"><input type="range" min="1" max="60" value="${gameSettings.spawnTime}" class="custom-range" oninput="window.updateCustom(this, 'time')"></div><span class="compact-val" id="valSpawnTime">${gameSettings.spawnTime}s</span></div>
-                <div class="compact-row"><span class="compact-label">Max Items</span><div style="flex:1; margin:0 10px;"><input type="range" min="1" max="50" value="${gameSettings.maxItems}" class="custom-range" oninput="window.updateCustom(this, 'max')"></div><span class="compact-val" id="valMaxItems">${gameSettings.maxItems}</span></div>
+                <div class="group-title">MISSION PARAMETERS</div>
+                <div class="compact-row">
+                    <span class="compact-label">Spawn Rate</span>
+                    <div style="flex:1; margin:0 10px;">
+                        <input type="range" min="1" max="60" value="${gameSettings.spawnTime}" class="tech-slider" oninput="window.updateCustom(this, 'time')">
+                    </div>
+                    <span class="compact-val" id="valSpawnTime">${gameSettings.spawnTime}s</span>
+                </div>
+                <div class="compact-row" style="margin-top:8px;">
+                    <span class="compact-label">Max Supplies</span>
+                    <div style="flex:1; margin:0 10px;">
+                        <input type="range" min="1" max="50" value="${gameSettings.maxItems}" class="tech-slider" oninput="window.updateCustom(this, 'max')">
+                    </div>
+                    <span class="compact-val" id="valMaxItems">${gameSettings.maxItems}</span>
+                </div>
             </div>
     `;
 
+    // AI SECTION
     if (gameMode === 'pve') {
         html += `
             <div class="settings-group">
-                <div class="group-title">MAGIC AI BRAIN</div>
-                <div class="compact-row"><span class="compact-label">DIFFICULTY</span><div style="text-align:right;"><button class="cycle-btn" onclick="window.cycleAI('difficulty')">${aiConfig.difficulty}</button><div style="font-size:9px; color:#666; margin-top:2px;">${getDiffDesc()}</div></div></div>
-                <div class="compact-row" style="margin-top:5px;"><span class="compact-label">BEHAVIOR</span><button class="cycle-btn" onclick="window.cycleAI('personality')">${AI_PERSONALITY[aiConfig.personality].label}</button></div>
+                <div class="group-title">ENEMY INTELLIGENCE</div>
+                <div class="compact-row"><span class="compact-label">DIFFICULTY</span><button class="cycle-btn" onclick="window.cycleAI('difficulty')">${aiConfig.difficulty}</button></div>
+                <div class="compact-row" style="margin-top:5px;"><span class="compact-label">TACTIC</span><button class="cycle-btn" onclick="window.cycleAI('personality')">${AI_PERSONALITY[aiConfig.personality].label}</button></div>
             </div>
         `;
     }
 
-    html += `<div class="settings-group"><div class="group-title">WEAPON DROP CHANCE (%)</div><div id="weaponListInternal">`;
+    // WEAPON DROP RATES (NEW 2-COLUMN LAYOUT)
+    html += `
+        <div class="settings-group">
+            <div class="group-title">SUPPLY DROP PROBABILITY (%)</div>
+            <div class="weapon-grid-container">
+    `;
     
-    let weaponListHtml = "";
     POWERUP_TYPES.forEach(key => {
         const w = WEAPONS[key]; pendingWeights[key] = w.weight;
-        weaponListHtml += `<div class="weapon-row"><div class="weapon-name" style="color:${w.color}">${key}</div><input type="range" min="0" max="100" value="${w.weight}" class="custom-range" id="slider_${key}" oninput="window.updateCustom(this, 'weaponWeight', '${key}')"><input type="number" min="0" max="100" value="${w.weight}" class="custom-num-input" id="input_${key}" oninput="window.updateCustom(this, 'weaponWeightInput', '${key}')"></div>`;
+        // Mỗi vũ khí là một 'weapon-card'
+        html += `
+            <div class="weapon-card" style="border-left-color: ${w.weight > 0 ? w.color : '#333'}">
+                <div class="w-header">
+                    <span style="color:${w.color}">${key}</span>
+                    <input type="number" min="0" max="100" value="${w.weight}" class="custom-num-input" style="width:30px; text-align:right;" id="input_${key}" oninput="window.updateCustom(this, 'weaponWeightInput', '${key}')">
+                </div>
+                <input type="range" min="0" max="100" value="${w.weight}" class="tech-slider" id="slider_${key}" oninput="window.updateCustom(this, 'weaponWeight', '${key}')">
+            </div>`;
     });
     
-    html += weaponListHtml + `
-        </div>
+    html += `
+            </div> </div>
+
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:10px; font-weight:bold; color:#888;">TOTAL RATE:</span>
+                <span style="font-size:10px; font-weight:bold; color:#888;">TOTAL:</span>
                 <span id="totalDropRate" style="font-size:11px; font-weight:bold;">100%</span>
             </div>
-            
             <div style="display:flex; gap: 10px;">
-                <button class="menu-btn" style="flex:1; background:#444; border-color:#666; font-size:12px; padding:12px 0;" onclick="window.resetDropRates()">
-                    ↺ DEFAULT
-                </button>
-                
-                <button id="btnApplyRates" style="flex:2; margin:0;" class="btn-apply valid" onclick="window.applyDropRates()">
-                    APPLY
-                </button>
+                <button class="menu-btn" style="flex:1; background:#222; font-size:10px;" onclick="window.resetDropRates()">RESET</button>
+                <button id="btnApplyRates" style="flex:2;" class="btn-apply valid" onclick="window.applyDropRates()">APPLY DATA</button>
             </div>
         </div>
     </div></div>`; 

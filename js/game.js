@@ -544,14 +544,40 @@ function spawnPowerUp() {
 // Effects Helpers
 function explodeFrag(x, y, color) { for(let i=0; i<13; i++) { let angle = Math.random() * Math.PI * 2; bullets.push(new Bullet(x, y, angle, color, 'fragment', null)); } createExplosion(x, y, color); createSmoke(x, y); }
 function createHitEffect(x, y, color = '#fff') { 
-    particles.push(new Particle(x, y, 'impact_ring', color)); for(let i=0; i<6; i++) particles.push(new Particle(x, y, 'spark', color));
-    for(let i=0; i<3; i++) particles.push(new Particle(x, y, 'debris', '#888')); particles.push(new Particle(x, y, 'flash', color));
+    for(let i = 0; i < 6; i++) {
+        particles.push(new Particle(x, y, 'spark', color));
+    }
+    for(let i = 0; i < 3; i++) {
+        particles.push(new Particle(x, y, 'debris', '#888'));
+    }
 }
 function createSparks(x,y,c,n) { for(let i=0;i<n;i++) particles.push(new Particle(x,y,'spark',c)); }
 
-function createExplosion(x,y,c, big=false) { 
-    shakeAmount=35; particles.push(new Particle(x,y,'flash','#fff')); let count = big ? 20 : 10;
-    for(let i=0; i<count; i++) particles.push(new Particle(x,y,'fire','#ffaa00')); for(let i=0; i<3; i++) particles.push(new Particle(x,y,'smoke','#888')); 
+function createExplosion(x, y, color, big = false) { 
+    shakeAmount = big ? 25 : 15; // Rung màn hình
+    
+    // 1. Ánh sáng lóe lên
+    particles.push(new Particle(x, y, 'flash', '#fff'));
+    
+    // 2. Sóng xung kích (Shockwave)
+    particles.push(new Particle(x, y, 'shockwave', color === '#fff' ? '#aaa' : color));
+    if (big) particles.push(new Particle(x, y, 'shockwave', '#fff'));
+
+    // 3. Lửa và Khói
+    let fireCount = big ? 18 : 8;
+    let smokeCount = big ? 10 : 5;
+    
+    for(let i = 0; i < fireCount; i++) {
+        particles.push(new Particle(x, y, 'fire', '#ff5722'));
+    }
+    for(let i = 0; i < smokeCount; i++) {
+        particles.push(new Particle(x, y, 'smoke', '#555')); // Khói xám
+    }
+
+    // 4. Mảnh vỡ (Debris)
+    for(let i = 0; i < 6; i++) {
+        particles.push(new Particle(x, y, 'debris', color));
+    }
 }
 
 function createSmoke(x, y) { for(let i=0;i<2;i++) particles.push(new Particle(x,y,'smoke','#888')); }
