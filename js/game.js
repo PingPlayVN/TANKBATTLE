@@ -28,6 +28,27 @@ function generateNoiseTexture() {
 generateNoiseTexture();
 
 // --- HELPER PHYSICS ---
+// CẬP NHẬT: Hàm checkWallCollision giờ đây kiểm tra cả thùng TNT (hình vuông)
+function checkWallCollision(x, y, radius) {
+    // 1. Check tường (Hình chữ nhật)
+    for (let w of walls) { 
+        if (circleRectCollide(x, y, radius, w.x, w.y, w.w, w.h)) return true; 
+    } 
+    
+    // 2. Check thùng TNT (Hình vuông)
+    for (let b of barrels) {
+        if (b.active) {
+            let size = b.radius * 2;
+            let left = b.x - b.radius;
+            let top = b.y - b.radius;
+            // Coi thùng như một bức tường hình vuông
+            if (circleRectCollide(x, y, radius, left, top, size, size)) return true;
+        }
+    }
+
+    return false; 
+}
+
 function calculateBounce(x, y, vx, vy, radius) {
     let hitX = checkWallCollision(x + vx, y, radius);
     if (hitX) { vx = -vx; }
@@ -485,6 +506,11 @@ function renderLighting() {
             }
         }
         
+        // Render halo cho thùng thuốc nổ (để dễ thấy trong đêm)
+        for (let bar of barrels) {
+            if (bar.active) drawSimpleHalo(bar.x, bar.y, 80, 0.7);
+        }
+
         shadowCtx.globalCompositeOperation = 'source-over';
     }
 }
@@ -529,6 +555,60 @@ function generateMaze() {
     if(gameMode === 'pve') { p2.isAI = true; p2.name = "BOT"; } else { p2.isAI = false; p2.name = "P2"; }
     p1.reset(); p2.reset();
     timerSpawnItems = gameSettings.spawnTime * 60; mazeGrid = grid; 
+
+    // --- LOGIC MỚI: SINH THÙNG TNT ÉP SÁT TƯỜNG (CHỈ TRONG DEATHMATCH) ---
+    if (isDeathmatch) {
+        let barrelCount = 5 + Math.floor(Math.random() * 4); // Số lượng 5-8 thùng (Giảm 2/3 so với cũ)
+        let placedCount = 0;
+        let attempts = 0;
+
+        // Vòng lặp thử tìm vị trí
+        while (placedCount < barrelCount && attempts < 1000) {
+            attempts++;
+            
+            // 1. CHỌN MỘT BỨC TƯỜNG BẤT KỲ ĐỂ "DỰA VÀO"
+            if (walls.length === 0) break;
+            let w = walls[Math.floor(Math.random() * walls.length)];
+            
+            // 2. CHỌN 1 TRONG 4 HƯỚNG CỦA TƯỜNG
+            let side = Math.floor(Math.random() * 4); 
+            let bx, by;
+            const r = 16;  // Bán kính thùng (khớp với class Barrel)
+            const gap = 2; // Khoảng hở nhỏ
+            
+            if (side === 0) { // TRÊN
+                bx = w.x + Math.random() * w.w; 
+                by = w.y - r - gap;             
+            } else if (side === 1) { // DƯỚI
+                bx = w.x + Math.random() * w.w;
+                by = w.y + w.h + r + gap;
+            } else if (side === 2) { // TRÁI
+                bx = w.x - r - gap;
+                by = w.y + Math.random() * w.h;
+            } else { // PHẢI
+                bx = w.x + w.w + r + gap;
+                by = w.y + Math.random() * w.h;
+            }
+
+            // 3. KIỂM TRA HỢP LỆ
+            if (bx < 40 || bx > canvas.width - 40 || by < 40 || by > canvas.height - 40) continue;
+            // Check tường khác (Tránh kẹt vào góc)
+            if (checkWallCollision(bx, by, r - 5)) continue;
+            // Check xa người chơi
+            if (dist(bx, by, p1.x, p1.y) < 150) continue;
+            if (dist(bx, by, p2.x, p2.y) < 150) continue;
+
+            // Check chồng chéo thùng khác
+            let overlap = false;
+            for (let existing of barrels) { 
+                if (dist(bx, by, existing.x, existing.y) < r * 2.2) overlap = true; 
+            }
+            if (overlap) continue;
+
+            barrels.push(new Barrel(bx, by));
+            placedCount++;
+        }
+    }
 }
 
 function spawnPowerUp() {
@@ -584,6 +664,7 @@ function createSmoke(x, y) { for(let i=0;i<2;i++) particles.push(new Particle(x,
 
 function resetRound() { 
     bullets=[]; particles=[]; powerups=[]; activeLasers=[]; 
+    barrels = []; // Xóa thùng cũ
     msgBox.style.display="none"; roundEnding=false; 
     if(roundEndTimer) clearTimeout(roundEndTimer); 
     p1.activeShield = false; p2.activeShield = false; 
@@ -617,6 +698,14 @@ function loop() {
     // 5. VẼ CÁC ĐỐI TƯỢNG "SÁNG" (ĐÈ LÊN LỚP BÓNG TỐI)
     // Để người chơi luôn nhìn thấy vật phẩm, đạn và xe tăng
     for(let p of powerups) p.draw();
+    
+    // VẼ THÙNG THUỐC NỔ
+    for(let i = barrels.length - 1; i >= 0; i--) {
+        let bar = barrels[i];
+        if (!bar.active) { barrels.splice(i, 1); continue; }
+        bar.draw();
+    }
+
     for(let b of bullets) { if(b.type === 'mine') b.draw(); }
     for(let i=activeLasers.length-1; i>=0; i--) { let l = activeLasers[i]; l.update(); l.draw(); if(!l.active) activeLasers.splice(i, 1); }
     
@@ -626,6 +715,24 @@ function loop() {
     // Update đạn & va chạm
     for(let i=bullets.length-1; i>=0; i--){
         let b=bullets[i]; b.update(walls); if(b.type !== 'mine') b.draw(); 
+        
+        // KIỂM TRA ĐẠN BẮN TRÚNG THÙNG (MỚI: SỬ DỤNG HITBOX VUÔNG)
+        for (let bar of barrels) {
+            if (bar.active && !b.dead) {
+                // Tính toán hitbox hình vuông
+                let size = bar.radius * 2;
+                let left = bar.x - bar.radius;
+                let top = bar.y - bar.radius;
+                
+                // Dùng hàm circleRectCollide
+                if (circleRectCollide(b.x, b.y, b.radius, left, top, size, size)) {
+                    bar.explode();
+                    b.dead = true;
+                    break;
+                }
+            }
+        }
+
         if(!b.dead){ 
             if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18) && b.owner!==p1){ p1.takeDamage(b.owner, b); }
             else if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18) && b.owner!==p2){ p2.takeDamage(b.owner, b); }

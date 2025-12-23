@@ -58,23 +58,26 @@ function selectMode(mode) {
 
 // --- LOGIC CHỌN BẢN ĐỒ & CHẾ ĐỘ HP (MỚI) ---
 function selectMap(type) {
+    // 1. Reset trạng thái mặc định trước
+    isNightMode = false;
+    isDeathmatch = false;
+
+    // 2. Kiểm tra loại bản đồ người chơi chọn
     if (type === 'night') {
+        // Bản đồ đêm: Bật chế độ tối, vẫn là One Shot (Deathmatch = false)
         isNightMode = true;
-    } else {
-        isNightMode = false;
+    } 
+    else if (type === 'dm') {
+        // Bản đồ Deathmatch: Ban ngày (NightMode = false), nhưng bật Máu (Deathmatch = true)
+        isDeathmatch = true;
     }
+    // Nếu type === 'day': Giữ nguyên mặc định (NightMode = false, Deathmatch = false)
 
-    // Đọc trạng thái công tắc HP Mode
-    const toggle = document.getElementById('dmToggle');
-    if (toggle && toggle.checked) {
-        isDeathmatch = true; // Bật chế độ máu
-    } else {
-        isDeathmatch = false; // Chế độ 1 shot
-    }
-
+    // 3. Xử lý hoạt ảnh và bắt đầu game (Giữ nguyên logic cũ)
     if (menuAnimId) cancelAnimationFrame(menuAnimId);
     window.startGame(); 
     
+    // Khóa xoay màn hình nếu là mobile
     if (isMobile && screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('landscape').catch(e => console.log("Không thể khóa xoay:", e));
     }

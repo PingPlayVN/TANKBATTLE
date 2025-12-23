@@ -21,6 +21,7 @@ let shakeAmount = 0;
 
 // Game Object Arrays
 let bullets=[], walls=[], particles=[], powerups=[]; 
+let barrels = [];
 let activeLasers = [];
 let mazeGrid = []; 
 let tracks = [];
@@ -119,7 +120,23 @@ function circleRectCollide(cx, cy, cr, rx, ry, rw, rh) {
     return (distX*distX) + (distY*distY) <= (cr*cr);
 }
 function checkWallCollision(x, y, radius) {
+    // 1. Check tường (Cũ)
     for (let w of walls) { if (circleRectCollide(x,y,radius,w.x,w.y,w.w,w.h)) return true; } 
+    
+    // 2. Check thùng nổ (MỚI) - Coi thùng như vật cản tròn
+    for (let b of barrels) {
+        if (b.active) {
+            // Vì b.x, b.y là tâm thùng, ta cần tính ra góc trái trên (Top-Left)
+            // b.radius = 16 (một nửa cạnh)
+            let size = b.radius * 2;       // Cạnh hình vuông (32px)
+            let left = b.x - b.radius;     // Tọa độ X góc trái
+            let top = b.y - b.radius;      // Tọa độ Y góc trên
+
+            // Kiểm tra va chạm: Xe (Tròn) vs Thùng (Vuông)
+            if (circleRectCollide(x, y, radius, left, top, size, size)) return true;
+        }
+    }
+
     return false; 
 }
 function checkWall(x, y, r) { return checkWallCollision(x,y,r); }

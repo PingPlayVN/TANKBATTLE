@@ -753,3 +753,119 @@ function updateAmmoUI(p) {
         for(let i=0;i<p.maxAmmo;i++){ const d=document.createElement('div'); d.className='bullet-notch ' + p.weaponType.toLowerCase(); if(i<p.ammo)d.classList.add('filled'); bar.appendChild(d); }
     }
 }
+
+class Barrel {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 16; // <--- ĐÃ GIẢM KÍCH THƯỚC (Cũ là 20)
+        this.active = true;
+    }
+
+    draw() {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        // Kích thước cạnh hình vuông
+        const size = this.radius * 2; 
+        const half = this.radius;
+
+        // 1. ĐỔ BÓNG
+        ctx.shadowBlur = 10; 
+        ctx.shadowColor = "rgba(0,0,0,0.6)";
+        
+        // 2. VẼ NỀN GỖ SẪM
+        ctx.fillStyle = "#3e2723"; 
+        ctx.fillRect(-half, -half, size, size);
+
+        ctx.shadowBlur = 0;
+
+        // 3. VẼ CÁC THANH GỖ NGANG
+        ctx.fillStyle = "#4e342e"; 
+        const gap = 2;
+        const plankH = (size - gap * 2) / 3;
+        
+        // Vẽ 3 thanh
+        ctx.fillRect(-half + 2, -half + 2, size - 4, plankH - 1);
+        ctx.fillRect(-half + 2, -half + 2 + plankH, size - 4, plankH - 1);
+        ctx.fillRect(-half + 2, -half + 2 + plankH * 2, size - 4, plankH - 1);
+
+        // 4. VẼ KHUNG VIỀN (Nét mảnh hơn cho thùng nhỏ)
+        ctx.strokeStyle = "#281914"; 
+        ctx.lineWidth = 2; // <--- Giảm độ dày nét (Cũ là 3)
+        ctx.strokeRect(-half, -half, size, size);
+
+        // 5. ĐINH TÁN KIM LOẠI
+        ctx.fillStyle = "#a1887f"; 
+        const boltInset = 4; // <--- Giảm khoảng cách lề (Cũ là 5)
+        
+        ctx.beginPath(); ctx.arc(-half + boltInset, -half + boltInset, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(half - boltInset, -half + boltInset, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-half + boltInset, half - boltInset, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(half - boltInset, half - boltInset, 1.5, 0, Math.PI*2); ctx.fill();
+
+        // 6. CHỮ TNT (Nhỏ hơn)
+        ctx.shadowColor = "#ff3d00"; 
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = "#ff5722"; 
+        ctx.font = "900 10px Arial Black"; // <--- Giảm cỡ chữ (Cũ là 12px)
+        ctx.textAlign = "center"; 
+        ctx.textBaseline = "middle";
+        ctx.fillText("TNT", 0, 1); // Chỉnh lại vị trí y chút xíu cho cân
+        
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(0,0,0,0.5)";
+        ctx.lineWidth = 0.5;
+        ctx.strokeText("TNT", 0, 1);
+
+        ctx.restore();
+    }
+
+    explode() {
+        if (!this.active) return;
+        this.active = false;
+        
+        // Hiệu ứng nổ
+        createExplosion(this.x, this.y, "#ffeb3b", true); 
+        createExplosion(this.x, this.y, "#ff5722", true); 
+
+        // Văng mảnh gỗ sẫm màu
+        for(let i=0; i<8; i++) {
+            let debrisColor = Math.random() > 0.5 ? '#3e2723' : '#5d4037';
+            particles.push(new Particle(this.x, this.y, 'debris', debrisColor));
+        }
+
+        // Gây sát thương & Đẩy lùi
+        const range = 100; 
+        const dmg = 40;    
+
+        [p1, p2].forEach(p => {
+            if (!p.dead && dist(this.x, this.y, p.x, p.y) < range) {
+                let angle = Math.atan2(p.y - this.y, p.x - this.x);
+                p.x += Math.cos(angle) * 20;
+                p.y += Math.sin(angle) * 20;
+                p.hp -= dmg;
+                p.updateHPUI();
+                if (p.hp <= 0) p.takeDamage(null, null); 
+            }
+        });
+
+        // Phá tường
+        for (let i = walls.length - 1; i >= 0; i--) {
+            let w = walls[i];
+            let wx = w.x + w.w / 2;
+            let wy = w.y + w.h / 2;
+            if (dist(this.x, this.y, wx, wy) < range - 20) {
+                destroyWall(i); 
+            }
+        }
+        
+        // Chuỗi phản ứng
+        barrels.forEach(b => {
+            if (b.active && b !== this && dist(this.x, this.y, b.x, b.y) < range) {
+                setTimeout(() => b.explode(), 150); 
+            }
+        });
+    }
+}
