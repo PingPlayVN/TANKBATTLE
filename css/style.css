@@ -67,8 +67,8 @@ canvas { display: block; position: absolute; width: 100%; height: 100%; object-f
 #gameCanvas { z-index: 2; cursor: crosshair; background: transparent; }
 
 /* --- UI LAYER --- */
-/* Đã thêm #mapSelectModal vào danh sách */
-#menuOverlay, #guideModal, #settingsModal, #modeSelectModal, #deviceSelectModal, #mapSelectModal { 
+/* Đã thêm #onlineModal vào danh sách layer cao nhất */
+#menuOverlay, #guideModal, #settingsModal, #modeSelectModal, #deviceSelectModal, #mapSelectModal, #onlineModal { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
     display: flex; flex-direction: column; justify-content: center; align-items: center; 
     z-index: 100; color: #fff; pointer-events: auto;
@@ -119,9 +119,8 @@ h1.game-title { font-family: 'Arial Black', sans-serif; font-size: 8vh; margin: 
 .map-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 10px; text-transform: uppercase; }
 .map-desc { font-size: 12px; color: #888; line-height: 1.4; }
 
-/* Thêm hiệu ứng cho thẻ Deathmatch (Màu đỏ) */
 .map-card.dm:hover { 
-    border-color: #d32f2f; /* Màu đỏ đậm */
+    border-color: #d32f2f;
     background: linear-gradient(135deg, rgba(211, 47, 47, 0.15), #1a1a1a); 
     transform: translateY(-5px);
     box-shadow: 0 0 20px rgba(211, 47, 47, 0.4);
@@ -167,133 +166,43 @@ h1.game-title { font-family: 'Arial Black', sans-serif; font-size: 8vh; margin: 
 .p2-set .fire-btn { border-color: rgba(198, 40, 40, 0.4); color: #c62828; } 
 .p2-set .fire-btn:active { background: rgba(198, 40, 40, 0.6); color:#fff; transform: scale(0.95); }
 
-/* ========================================= */
-/* BOTTOM BAR (NEW GLASSMORPHISM STYLE)      */
-/* ========================================= */
-
+/* --- BOTTOM BAR (GLASSMORPHISM) --- */
 #bottomBar { 
-    background: rgba(10, 10, 10, 0.85); /* Màu tối trong suốt */
-    backdrop-filter: blur(5px);         /* Hiệu ứng làm mờ hậu cảnh */
-    height: 14%; 
-    max-height: 90px; 
-    min-height: 60px; 
-    width: 100%; 
-    display: none; 
-    align-items: center; 
-    justify-content: space-between; 
-    padding: 0 10px; 
-    border-top: 2px solid #333; 
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(5px);
+    height: 14%; max-height: 90px; min-height: 60px; width: 100%; 
+    display: none; align-items: center; justify-content: space-between; 
+    padding: 0 10px; border-top: 2px solid #333; 
     box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
-    color: #eee; 
-    z-index: 50; 
-    position: relative; 
-    flex-shrink: 0; 
-    box-sizing: border-box; 
+    color: #eee; z-index: 50; position: relative; flex-shrink: 0; box-sizing: border-box; 
 }
 
-/* KHUNG NGƯỜI CHƠI (HUD) */
 .player-hud { 
-    display: flex; 
-    align-items: center; 
-    background: rgba(30, 30, 30, 0.4); 
-    padding: 5px 15px; 
-    height: 80%; 
-    width: 28%;
+    display: flex; align-items: center; background: rgba(30, 30, 30, 0.4); 
+    padding: 5px 15px; height: 80%; width: 28%;
     border: 1px solid rgba(255,255,255,0.1); 
-    transform: skewX(-15deg); /* Nghiêng ít hơn để dễ đọc */
-    position: relative; 
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
+    transform: skewX(-15deg); position: relative; 
+    box-shadow: 0 0 10px rgba(0,0,0,0.3); transition: all 0.3s ease;
 }
+.player-hud.p1-hud { border-left: 4px solid #4CAF50; background: linear-gradient(90deg, rgba(76, 175, 80, 0.15), transparent); margin-left: -10px; padding-left: 25px; }
+.player-hud.p2-hud { border-right: 4px solid #f44336; flex-direction: row-reverse; background: linear-gradient(-90deg, rgba(244, 67, 54, 0.15), transparent); margin-right: -10px; padding-right: 25px; }
 
-/* PLAYER 1 (Xanh) */
-.player-hud.p1-hud { 
-    border-left: 4px solid #4CAF50; 
-    background: linear-gradient(90deg, rgba(76, 175, 80, 0.15), transparent); 
-    margin-left: -10px;
-    padding-left: 25px;
-}
-
-/* PLAYER 2 (Đỏ) */
-.player-hud.p2-hud { 
-    border-right: 4px solid #f44336; 
-    flex-direction: row-reverse; 
-    background: linear-gradient(-90deg, rgba(244, 67, 54, 0.15), transparent); 
-    margin-right: -10px;
-    padding-right: 25px;
-}
-
-/* NỘI DUNG BÊN TRONG HUD */
-.hud-inner { 
-    transform: skewX(15deg); /* Trả lại góc thẳng cho chữ */
-    display: flex; 
-    align-items: center; 
-    width: 100%; 
-    justify-content: space-between; 
-    gap: 15px;
-}
+.hud-inner { transform: skewX(15deg); display: flex; align-items: center; width: 100%; justify-content: space-between; gap: 15px;}
 .p2-hud .hud-inner { flex-direction: row-reverse; }
 
-/* THÔNG TIN (Tên, Máu, Điểm) */
-.hud-info { 
-    display: flex; 
-    flex-direction: column; 
-    flex: 1;
-    justify-content: center;
-}
+.hud-info { display: flex; flex-direction: column; flex: 1; justify-content: center; }
 .p2-hud .hud-info { align-items: flex-end; text-align: right; }
 .p1-hud .hud-info { align-items: flex-start; text-align: left; }
 
-.hud-name { 
-    font-size: 10px; 
-    font-weight: 900; 
-    color: #aaa; 
-    letter-spacing: 1px; 
-    text-transform: uppercase; 
-    margin-bottom: 3px;
-    text-shadow: 0 1px 2px #000;
-}
+.hud-name { font-size: 10px; font-weight: 900; color: #aaa; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; text-shadow: 0 1px 2px #000; }
+.hud-score { font-size: 24px; font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); font-family: monospace; }
+.hud-ammo-box { display: flex; gap: 2px; background: rgba(0,0,0,0.6); padding: 6px; border-radius: 4px; border: 1px solid #444; height: 32px; align-items: center; min-width: 80px; justify-content: center; box-shadow: inset 0 0 5px #000; }
 
-.hud-score { 
-    font-size: 24px; 
-    font-weight: 900; 
-    line-height: 1; 
-    color: #fff; 
-    text-shadow: 0 0 10px rgba(255,255,255,0.5); 
-    font-family: monospace; 
-}
-
-/* HỘP ĐẠN (AMMO BOX) */
-.hud-ammo-box { 
-    display: flex; 
-    gap: 2px; 
-    background: rgba(0,0,0,0.6); 
-    padding: 6px; 
-    border-radius: 4px; 
-    border: 1px solid #444; 
-    height: 32px; 
-    align-items: center; 
-    min-width: 80px; 
-    justify-content: center; 
-    box-shadow: inset 0 0 5px #000;
-}
-
-/* VIÊN ĐẠN (STYLED) */
-.bullet-notch { 
-    width: 6px; 
-    height: 16px; 
-    background-color: #222; 
-    transform: skewX(-15deg); 
-    border: 1px solid #111; 
-    transition: all 0.2s;
-    margin: 0 1px;
-}
-
-/* MÀU ĐẠN P1 & P2 */
+.bullet-notch { width: 6px; height: 16px; background-color: #222; transform: skewX(-15deg); border: 1px solid #111; transition: all 0.2s; margin: 0 1px; }
 .p1-ammo .bullet-notch.filled { background: #66bb6a; box-shadow: 0 0 6px #66bb6a; border-color: #81c784; }
 .p2-ammo .bullet-notch.filled { background: #ef5350; box-shadow: 0 0 6px #ef5350; border-color: #e57373; }
 
-/* MÀU ĐẠN ĐẶC BIỆT */
+/* Special Bullets */
 .bullet-notch.laser.filled { background: #00ffff !important; box-shadow: 0 0 8px #00ffff; }
 .bullet-notch.frag.filled { background: #ffaa00 !important; box-shadow: 0 0 8px #ffaa00; }
 .bullet-notch.gatling.filled { background: #ff00ff !important; box-shadow: 0 0 8px #ff00ff; }
@@ -303,311 +212,63 @@ h1.game-title { font-family: 'Arial Black', sans-serif; font-size: 8vh; margin: 
 .bullet-notch.mine.filled { background: #555555 !important; box-shadow: 0 0 8px #ff0000; }
 .bullet-notch.missile.filled { background: #ff4400 !important; box-shadow: 0 0 8px #ff4400; }
 
-/* --- BUTTON GIỮA (TACTICAL SYSTEM) --- */
-.tac-btn { 
-    background: linear-gradient(180deg, #222, #111); 
-    border: 1px solid #444; 
-    color: #888; 
-    padding: 10px 25px; 
-    font-size: 10px; 
-    font-weight: 900; 
-    letter-spacing: 2px; 
-    cursor: pointer; 
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); 
-    transition: all 0.2s;
-    box-shadow: 0 4px 0 #000;
-    margin-top: 5px;
-}
-.tac-btn:hover { 
-    background: #333; 
-    color: #fff; 
-    border-color: #666; 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #000;
-}
-.tac-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #000;
-}
+.tac-btn { background: linear-gradient(180deg, #222, #111); border: 1px solid #444; color: #888; padding: 10px 25px; font-size: 10px; font-weight: 900; letter-spacing: 2px; cursor: pointer; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: all 0.2s; box-shadow: 0 4px 0 #000; margin-top: 5px; }
+.tac-btn:hover { background: #333; color: #fff; border-color: #666; transform: translateY(-2px); box-shadow: 0 6px 0 #000; }
+.tac-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #000; }
 
-/* ========================================= */
-/* HEALTH BAR STYLES (STRIPED + GLOW)        */
-/* ========================================= */
+/* HEALTH BAR */
+.hp-track { width: 100%; max-width: 140px; height: 8px; background: #111; border: 1px solid #333; margin: 4px 0; position: relative; transform: skewX(-15deg); box-shadow: inset 0 0 5px #000; overflow: hidden; }
+.hp-fill { height: 100%; width: 100%; transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); position: relative; }
+.hp-fill::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent); background-size: 10px 10px; }
+.p1-fill { background: linear-gradient(90deg, #2e7d32, #66bb6a); box-shadow: 0 0 10px #43a047; }
+.p2-fill { background: linear-gradient(90deg, #c62828, #ef5350); box-shadow: 0 0 10px #e53935; }
+.hp-critical { animation: hpAlert 0.4s infinite alternate; }
+@keyframes hpAlert { 0% { filter: brightness(1); opacity: 1; } 100% { filter: brightness(2); opacity: 0.5; background-color: #fff; } }
 
-.hp-track {
-    width: 100%; 
-    max-width: 140px;
-    height: 8px;
-    background: #111;
-    border: 1px solid #333;
-    margin: 4px 0;
-    position: relative;
-    transform: skewX(-15deg);
-    box-shadow: inset 0 0 5px #000;
-    overflow: hidden;
-}
-
-.hp-fill {
-    height: 100%;
-    width: 100%;
-    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
-}
-
-/* Hiệu ứng vân sọc chéo */
-.hp-fill::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0.15) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, 0.15) 50%,
-        rgba(255, 255, 255, 0.15) 75%,
-        transparent 75%,
-        transparent
-    );
-    background-size: 10px 10px;
-}
-
-.p1-fill {
-    background: linear-gradient(90deg, #2e7d32, #66bb6a);
-    box-shadow: 0 0 10px #43a047;
-}
-
-.p2-fill {
-    background: linear-gradient(90deg, #c62828, #ef5350);
-    box-shadow: 0 0 10px #e53935;
-}
-
-.hp-critical {
-    animation: hpAlert 0.4s infinite alternate;
-}
-
-@keyframes hpAlert {
-    0% { filter: brightness(1); opacity: 1; }
-    100% { filter: brightness(2); opacity: 0.5; background-color: #fff; }
-}
-
-/* ========================================= */
-/* TOGGLE SWITCH (FOR MAP MENU)              */
-/* ========================================= */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-}
-
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #333;
-  transition: .4s;
-  border: 1px solid #555;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 4px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: #d32f2f;
-  border-color: #ff5252;
-}
-
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
-
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
+/* PAUSE & SETTINGS UI */
 .pause-title { font-size: 40px; margin-bottom: 20px; letter-spacing: 5px; font-weight: 900; color: #fff; }
 .pause-layout { display: flex; gap: 20px; align-items: stretch; justify-content: center; height: 80%; }
 .pause-panel { background: rgba(20, 20, 20, 0.95); border: 1px solid #444; padding: 20px; border-radius: 8px; width: 300px; display: flex; flex-direction: column; }
 .pause-panel.system { border-top: 4px solid #fff; width: 200px; }
-/* OPTIMIZED SETTINGS PANEL STYLE */
-.pause-panel.settings { 
-    border-top: 4px solid #00ffff; 
-    width: 266px; 
-    position: relative; 
-    overflow: hidden; 
-    padding: 0; 
-    background: #0f0f0f;
-}
-
+.pause-panel.settings { border-top: 4px solid #00ffff; width: 266px; position: relative; overflow: hidden; padding: 0; background: #0f0f0f; }
 .pause-panel.controls { border-top: 4px solid #ffaa00; width: 220px; overflow-y: auto; background: rgba(18, 18, 18, 0.98); }
 .pause-panel.controls::-webkit-scrollbar { width: 4px; }
 .pause-panel.controls::-webkit-scrollbar-thumb { background: #444; }
 
-/* New Settings Internal Layout */
-.settings-header-fixed {
-    padding: 15px 15px 10px 15px;
-    background: #1a1a1a;
-    border-bottom: 1px solid #333;
-    flex-shrink: 0;
-}
+.settings-header-fixed { padding: 15px 15px 10px 15px; background: #1a1a1a; border-bottom: 1px solid #333; flex-shrink: 0; }
+.settings-scroll-area { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+.settings-scroll-area::-webkit-scrollbar { width: 6px; background: #000; }
+.settings-scroll-area::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
 
-.settings-scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-.settings-scroll-area::-webkit-scrollbar { width: 6px; }
-.settings-scroll-area::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.settings-group { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 10px; }
+.group-title { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-.settings-group {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    padding: 10px;
-}
-
-.group-title {
-    font-size: 10px;
-    font-weight: bold;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-/* Compact Controls inside Settings */
-.compact-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    font-size: 11px;
-}
-.compact-row:last-child { margin-bottom: 0; }
+.compact-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
 .compact-label { font-weight: bold; color: #ccc; }
 .compact-val { color: #00ffff; font-family: monospace; font-weight: bold; }
 
-/* Weapon Grid Row */
-.weapon-row {
-    display: grid;
-    grid-template-columns: 70px 1fr 35px;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 4px;
-    background: rgba(0,0,0,0.2);
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-.weapon-name { font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.weapon-grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 5px; }
+.weapon-card { background: rgba(255, 255, 255, 0.05); border-left: 3px solid #444; padding: 8px; border-radius: 0 4px 4px 0; transition: all 0.2s; display: flex; flex-direction: column; gap: 5px; }
+.weapon-card:hover { background: rgba(255, 255, 255, 0.1); border-left-color: #d32f2f; }
+.w-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 900; text-transform: uppercase; }
 
-.custom-range {
-    width: 100%;
-    cursor: pointer;
-    accent-color: #d32f2f;
-    height: 4px;
-    background: #333;
-    border-radius: 2px;
-    outline: none;
-    -webkit-appearance: none;
-}
-.custom-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 10px;
-    height: 10px;
-    background: #eee;
-    border-radius: 50%;
-    cursor: pointer;
-}
+.tech-slider { -webkit-appearance: none; width: 100%; height: 4px; background: #333; outline: none; border-radius: 2px; }
+.tech-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #d32f2f; border: 2px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 0 5px #d32f2f; }
+.custom-range { width: 100%; cursor: pointer; accent-color: #d32f2f; height: 4px; background: #333; border-radius: 2px; outline: none; -webkit-appearance: none; }
+.custom-range::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: #eee; border-radius: 50%; cursor: pointer; }
+.custom-num-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: #fff; font-family: monospace; font-size: 11px; text-align: center; outline: none; padding: 0; }
 
-.custom-num-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid #444;
-    color: #fff;
-    font-family: monospace;
-    font-size: 11px;
-    text-align: center;
-    outline: none;
-    padding: 0;
-}
-
-/* UPGRADED APPLY BUTTON */
-.btn-apply {
-    width: 100%;
-    padding: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-bottom: 5px;
-    margin-top: 10px;
-    touch-action: manipulation;
-    font-size: 14px;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
-    position: relative;
-    top: 0;
-}
-
-.btn-apply:active {
-    top: 4px;
-    box-shadow: 0 0 0 rgba(0,0,0,0.3);
-}
-
-.btn-apply.valid {
-    background: linear-gradient(135deg, #43a047, #2e7d32);
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-.btn-apply.valid:hover {
-    background: linear-gradient(135deg, #66bb6a, #43a047);
-    box-shadow: 0 6px 10px rgba(67, 160, 71, 0.4), 0 4px 0 rgba(0,0,0,0.3);
-}
-
-.btn-apply.invalid {
-    background: #333;
-    color: #777;
-    cursor: not-allowed;
-    box-shadow: none;
-}
+.btn-apply { width: 100%; padding: 12px; font-weight: 900; text-transform: uppercase; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; margin-bottom: 5px; margin-top: 10px; touch-action: manipulation; font-size: 14px; letter-spacing: 1px; box-shadow: 0 4px 0 rgba(0,0,0,0.3); position: relative; top: 0; }
+.btn-apply:active { top: 4px; box-shadow: 0 0 0 rgba(0,0,0,0.3); }
+.btn-apply.valid { background: linear-gradient(135deg, #43a047, #2e7d32); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.btn-apply.valid:hover { background: linear-gradient(135deg, #66bb6a, #43a047); box-shadow: 0 6px 10px rgba(67, 160, 71, 0.4), 0 4px 0 rgba(0,0,0,0.3); }
+.btn-apply.invalid { background: #333; color: #777; cursor: not-allowed; box-shadow: none; }
 
 .control-group { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); }
 .control-group.p1 { border-left: 4px solid #2e7d32; }
 .control-group.p2 { border-left: 4px solid #c62828; }
-
 .key-grid { display: grid; grid-template-columns: 1fr auto; gap: 6px 0; align-items: center; }
 .key-label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-
 .panel-header { font-size: 12px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 10px; flex-shrink: 0; }
 .sub-header { font-size: 10px; font-weight: bold; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .key-btn { background: #111; border: 1px solid #333; color: #fff; padding: 4px 8px; cursor: pointer; font-family: monospace; min-width: 60px; border-radius: 4px; text-align: center; font-size: 11px; }
@@ -618,8 +279,7 @@ input:checked + .slider:before {
 .mode-btn:hover { background: #333; border-color: #666; transform: scale(1.02); }
 .mode-btn.pvp { border-left: 5px solid #ffaa00; }
 .mode-btn.pve { border-left: 5px solid #00ffff; }
-.mode-btn.deathmatch { border-left: 5px solid #d50000; } /* Style cho nút mới */
-
+.mode-btn.deathmatch { border-left: 5px solid #d50000; }
 .mode-desc { font-size: 12px; color: #888; font-weight: normal; display: block; margin-top: 5px;}
 .menu-btn { padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; background: #222; color: #fff; border: 1px solid #444; transition: 0.2s; text-transform: uppercase; width: 100%; touch-action: manipulation; }
 .menu-btn:hover { background: #444; border-color: #666; }
@@ -641,73 +301,31 @@ input:checked + .slider:before {
 
 .cycle-btn { background: #333; border: 1px solid #555; color: #fff; padding: 4px 10px; cursor: pointer; font-size: 11px; border-radius: 4px; min-width: 80px; text-align: center; font-weight: bold; }
 .cycle-btn:hover { background: #444; border-color: #888; }
-
 input[type="checkbox"] { width: 16px; height: 16px; accent-color: #d32f2f; cursor: pointer; }
 
-/* --- TANK PREVIEW UI --- */
-.tank-preview {
-    display: block;
-    margin: 0 auto 10px auto;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 70%);
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+.tank-preview { display: block; margin: 0 auto 10px auto; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 70%); border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+
+/* --- ONLINE MULTIPLAYER UI (MỚI) --- */
+#onlineModal {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.95); z-index: 500;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    color: #fff;
 }
-
-/* --- TRONG FILE style.css --- */
-
-/* Làm đẹp thanh cuộn */
-.settings-scroll-area::-webkit-scrollbar { width: 6px; background: #000; }
-.settings-scroll-area::-webkit-scrollbar-thumb { background: #d32f2f; border-radius: 3px; }
-
-/* Grid layout cho danh sách vũ khí */
-.weapon-grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Chia làm 2 cột */
-    gap: 8px;
-    padding: 5px;
-}
-
-/* Card vũ khí xịn hơn */
-.weapon-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid #444;
-    padding: 8px;
-    border-radius: 0 4px 4px 0;
+.online-section { width: 300px; text-align: center; }
+.room-id-box {
+    background: #222; border: 2px dashed #666; color: #00ffff;
+    padding: 15px; font-family: monospace; font-size: 24px; font-weight: bold;
+    letter-spacing: 2px; margin-top: 10px; user-select: text; cursor: pointer;
     transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
 }
-.weapon-card:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-left-color: #d32f2f; /* Highlight màu đỏ khi di chuột */
-}
+.room-id-box:hover { border-color: #fff; background: #333; }
+.room-id-box:active { transform: scale(0.98); }
 
-.w-header {
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-    font-size: 10px; 
-    font-weight: 900; 
-    text-transform: uppercase;
+.room-input {
+    background: #111; border: 1px solid #444; color: #fff;
+    padding: 15px; width: 100%; font-size: 16px; font-family: monospace;
+    text-align: center; margin-bottom: 10px; outline: none; text-transform: uppercase;
+    box-sizing: border-box;
 }
-
-/* Style thanh trượt (Slider) mới */
-.tech-slider {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 4px;
-    background: #333;
-    outline: none;
-    border-radius: 2px;
-}
-.tech-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px; height: 12px;
-    background: #d32f2f;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 5px #d32f2f;
-}
+.room-input:focus { border-color: #00ffff; }
