@@ -260,3 +260,16 @@ function getBFSPath(startX, startY, targetX, targetY) {
     while (curr) { path.push({x: curr.c, y: curr.r}); curr = cameFrom[curr.c+","+curr.r]; }
     return path.reverse();
 }
+
+let lastTime = 0;
+let dt = 1; // Delta Time (1.0 = 60 FPS)
+
+// Hàm reset thời gian (gọi khi bắt đầu game)
+function resetTime() {
+    lastTime = performance.now();
+    dt = 1;
+}
+
+// --- NETWORK CONFIG ---
+const NETWORK_FPS = 30; // Số lần gửi dữ liệu mỗi giây (Tối ưu: 20-30)
+const NETWORK_TICK_DELAY = 1000 / NETWORK_FPS;

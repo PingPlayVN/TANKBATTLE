@@ -1,10 +1,13 @@
+// js/classes.js
+
 // --- VFX CLASSES ---
 class TrackMark {
     constructor(x, y, angle) {
         this.x = x; this.y = y; this.angle = angle;
         this.life = 300; this.maxLife = 300;
     }
-    update() { this.life--; }
+    // Cập nhật: Trừ life theo dt
+    update(dt = 1) { this.life -= 1 * dt; }
     draw(ctx) {
         if (this.life <= 0) return;
         ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
@@ -18,13 +21,12 @@ class Particle {
     constructor(x, y, type, color) {
         this.x = x; this.y = y; this.type = type; this.color = color;
         let a = Math.random() * Math.PI * 2;
-        let s = Math.random() * 2 + 1; // Tốc độ cơ bản
+        let s = Math.random() * 2 + 1; 
         
-        // Cấu hình vật lý cho từng loại
         if (type === 'spark') { s = Math.random() * 4 + 2; this.decay = 0.04; this.size = Math.random() * 2 + 1; }
         else if (type === 'fire') { s = Math.random() * 3; this.decay = 0.03; this.size = Math.random() * 6 + 4; }
         else if (type === 'smoke') { s = Math.random() * 1; this.decay = 0.015; this.size = Math.random() * 8 + 6; }
-        else if (type === 'shockwave') { s = 0; this.decay = 0.08; this.size = 5; this.maxSize = 60; this.lw = 8; } // Loại mới
+        else if (type === 'shockwave') { s = 0; this.decay = 0.08; this.size = 5; this.maxSize = 60; this.lw = 8; } 
         else if (type === 'flash') { s = 0; this.decay = 0.15; this.size = 40; }
         else if (type === 'debris') { s = Math.random() * 3 + 1; this.decay = 0.02; this.size = Math.random() * 3 + 1; }
         else { this.decay = 0.03; this.size = 3; }
@@ -34,19 +36,23 @@ class Particle {
         this.life = 1.0; 
     }
 
-    update() {
-        this.x += this.vx; this.y += this.vy; 
-        this.life -= this.decay;
+    // Cập nhật: Áp dụng dt vào di chuyển và biến đổi
+    update(dt = 1) {
+        this.x += this.vx * dt; 
+        this.y += this.vy * dt; 
+        this.life -= this.decay * dt;
 
         if (this.type === 'shockwave') {
-            this.size += 4; // Sóng mở rộng nhanh
-            this.lw *= 0.9; // Độ dày nét giảm dần
+            this.size += 4 * dt; 
+            this.lw *= Math.pow(0.9, dt); 
         } else if (this.type === 'smoke') {
-            this.x += (Math.random() - 0.5) * 0.5; // Khói bay lờ đờ
-            this.size += 0.2; // Khói to dần
-            this.vx *= 0.95; this.vy *= 0.95;
+            this.x += (Math.random() - 0.5) * 0.5 * dt; 
+            this.size += 0.2 * dt; 
+            this.vx *= Math.pow(0.95, dt); 
+            this.vy *= Math.pow(0.95, dt);
         } else {
-            this.vx *= 0.92; this.vy *= 0.92; // Ma sát
+            this.vx *= Math.pow(0.92, dt); 
+            this.vy *= Math.pow(0.92, dt); 
         }
     }
 
@@ -56,24 +62,18 @@ class Particle {
         ctx.globalAlpha = Math.max(0, this.life);
 
         if (this.type === 'shockwave') {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = this.lw;
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.strokeStyle = this.color; ctx.lineWidth = this.lw; ctx.stroke();
         } 
         else if (this.type === 'fire') {
-            // Hiệu ứng Gradient cho lửa (Tâm vàng -> Ngoài đỏ)
             let grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
             grd.addColorStop(0, 'rgba(255, 255, 100, 1)');
             grd.addColorStop(0.4, 'rgba(255, 100, 0, 0.8)');
             grd.addColorStop(1, 'rgba(255, 0, 0, 0)');
-            ctx.fillStyle = grd;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
         } 
         else if (this.type === 'flash') {
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = this.color;
+            ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = this.color;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
             ctx.globalCompositeOperation = "source-over";
         }
@@ -87,21 +87,26 @@ class Particle {
 }
 
 class PowerUp {
-    constructor(x, y) {
-        this.x=x; this.y=y; this.active=true;
-        let totalWeight = 0;
-        POWERUP_TYPES.forEach(t => totalWeight += WEAPONS[t].weight);
-        let rnd = Math.random() * totalWeight;
-        for(let t of POWERUP_TYPES) {
-            rnd -= WEAPONS[t].weight;
-            if(rnd <= 0) { this.type = t; break; }
+    constructor(x, y, forceType = null) {
+        this.x = x; this.y = y; this.active = true;
+        if (forceType) {
+            this.type = forceType;
+        } else {
+            let totalWeight = 0;
+            POWERUP_TYPES.forEach(t => totalWeight += WEAPONS[t].weight);
+            let rnd = Math.random() * totalWeight;
+            for(let t of POWERUP_TYPES) {
+                rnd -= WEAPONS[t].weight;
+                if(rnd <= 0) { this.type = t; break; }
+            }
+            if (!this.type) this.type = POWERUP_TYPES[0]; 
         }
-        if (!this.type) this.type = POWERUP_TYPES[0]; 
-        this.angle=0;
+        this.angle = 0;
     }
+    // PowerUp xoay chỉ là hiệu ứng hình ảnh, không cần dt quá khắt khe, nhưng thêm vào cho mượt
     draw() {
         if(!this.active) return;
-        this.angle += 0.03;
+        this.angle += 0.03; // Nếu muốn chuẩn xác: += 0.03 * dt (nhưng cần truyền dt vào draw, tạm thời giữ nguyên)
         let rockAngle = Math.sin(this.angle) * 0.25; 
         let color = WEAPONS[this.type].color;
         ctx.save(); ctx.translate(this.x, this.y); 
@@ -140,8 +145,10 @@ class LaserBeam {
             }
         }
     }
+    // Cập nhật: Life chưa tích hợp dt ở đây vì logic check hit từng frame. 
+    // Tuy nhiên, logic trừ life bên ngoài game.js đã nhân dt rồi.
+    // Hàm update này chủ yếu check hit.
     update() {
-        this.life--; if(this.life <= 0) this.active = false;
         const checkHit = (tank) => {
             if (!tank.dead && this.owner !== tank) {
                 if (this.curveTarget === tank) { 
@@ -198,12 +205,8 @@ class Bullet {
             this.radius = 3; this.life = 200; this.friction = 0.98;
             this.maxLife = 200;
         } else if (type === 'drill') {
-            this.radius = 4; 
-            this.speed = 4.0; 
-            this.life = 600; 
-            this.bouncesLeft = 5; 
-            this.vx = Math.cos(angle) * this.speed; 
-            this.vy = Math.sin(angle) * this.speed;
+            this.radius = 4; this.speed = 4.0; this.life = 600; this.bouncesLeft = 5; 
+            this.vx = Math.cos(angle) * this.speed; this.vy = Math.sin(angle) * this.speed;
         } else if (type === 'missile') {
             this.radius = 5; this.speed = 2.0; this.stage2Speed = 3.2; this.life = 600; this.maxLife = 600; 
             this.angle = angle; this.vx = Math.cos(angle) * this.speed; this.vy = Math.sin(angle) * this.speed;
@@ -212,17 +215,22 @@ class Bullet {
         } else { this.vx=Math.cos(angle)*speed; this.vy=Math.sin(angle)*speed; }
         this.dead=false;
     }
-    update(walls) {
-        this.life--; 
+
+    // Cập nhật: Thêm dt và logic Sub-stepping
+    update(walls, dt = 1) {
+        this.life -= 1 * dt; 
         if(this.life<=0) { 
             this.dead=true; 
             if(this.type==='frag') explodeFrag(this.x,this.y,this.color); 
             if(this.type==='mine' || this.type==='missile') createExplosion(this.x, this.y, this.color); 
         }
+        
         if (this.type === 'flame') {
-            this.vx *= this.friction; this.vy *= this.friction;
-            this.radius += 0.15; 
-            this.x += this.vx; this.y += this.vy;
+            this.vx *= Math.pow(this.friction, dt); 
+            this.vy *= Math.pow(this.friction, dt);
+            this.radius += 0.15 * dt; 
+            this.x += this.vx * dt; 
+            this.y += this.vy * dt;
             for(let other of bullets) {
                  if (other !== this && !other.dead && other.type !== 'flame' && other.type !== 'mine' && other.type !== 'laser') {
                      if (dist(this.x, this.y, other.x, other.y) < this.radius + other.radius) {
@@ -232,8 +240,9 @@ class Bullet {
             }
             return;
         }
+
         if (this.type === 'missile') {
-            this.smokeTimer++;
+            this.smokeTimer += 1 * dt;
             let smokeColor = this.lockedTargetColor ? this.lockedTargetColor : '#444';
             if (this.smokeTimer > 2) { particles.push(new Particle(this.x - Math.cos(this.angle)*5, this.y - Math.sin(this.angle)*5, 'smoke', smokeColor)); this.smokeTimer = 0; }
             if (this.maxLife - this.life > 180) { 
@@ -264,27 +273,39 @@ class Bullet {
                     let diff = targetAngle - this.angle;
                     while(diff < -Math.PI) diff += Math.PI*2; while(diff > Math.PI) diff -= Math.PI*2;
                     let turnSpeed = 0.15; 
-                    this.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnSpeed);
+                    this.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnSpeed * dt); // Xoay theo dt
                 }
-                this.vx = Math.cos(this.angle) * this.speed; this.vy = Math.sin(this.angle) * this.speed;
+                this.vx = Math.cos(this.angle) * this.speed; 
+                this.vy = Math.sin(this.angle) * this.speed;
             }
         }
+
         if (this.type === 'mine') {
-            if (this.armingTime > 0) { this.armingTime--; return; }
+            if (this.armingTime > 0) { this.armingTime -= 1 * dt; return; }
             this.visible = false; 
             let hitP1 = !p1.dead && Math.hypot(this.x-p1.x, this.y-p1.y) < 30;
             let hitP2 = !p2.dead && Math.hypot(this.x-p2.x, this.y-p2.y) < 30;
             if (hitP1 || hitP2) { this.dead = true; createExplosion(this.x, this.y, "red", true); if(hitP1) p1.takeDamage(null, this); if(hitP2) p2.takeDamage(null, this); }
             return; 
         }
-        if(this.type === 'fragment') { this.vx *= this.friction; this.vy *= this.friction; if(Math.abs(this.vx) < 0.05 && Math.abs(this.vy) < 0.05) { this.vx = 0; this.vy = 0; } }
+
+        if(this.type === 'fragment') { 
+            this.vx *= Math.pow(this.friction, dt); 
+            this.vy *= Math.pow(this.friction, dt); 
+            if(Math.abs(this.vx) < 0.05 && Math.abs(this.vy) < 0.05) { this.vx = 0; this.vy = 0; } 
+        }
+        
+        // --- SUB-STEPPING MOVEMENT ---
         let steps = (this.type==='frag' || this.type==='drill') ? 5 : 8; 
-        let svx=this.vx/steps; let svy=this.vy/steps;
+        // Tính tổng lượng di chuyển trong frame này (nhân dt), sau đó chia nhỏ ra
+        let svx = (this.vx * dt) / steps; 
+        let svy = (this.vy * dt) / steps;
         
         if(this.vx === 0 && this.vy === 0 && this.type === 'fragment') return;
 
         for(let k=0; k<steps; k++){
-            this.x+=svx; this.y+=svy;
+            this.x += svx; 
+            this.y += svy;
             
             let hitWallIndex = -1;
             for(let i=0; i<walls.length; i++) {
@@ -300,20 +321,12 @@ class Bullet {
                 
                 if (this.type === 'drill') {
                     this.x -= svx; this.y -= svy; 
-                    if (checkWallCollision(this.x + svx, this.y, this.radius)) { 
-                        this.vx = -this.vx; svx = -svx; 
-                    } else { 
-                        this.vy = -this.vy; svy = -svy; 
-                    }
+                    if (checkWallCollision(this.x + svx, this.y, this.radius)) { this.vx = -this.vx; svx = -svx; } 
+                    else { this.vy = -this.vy; svy = -svy; }
                     this.angle = Math.atan2(this.vy, this.vx);
-
                     if (window.destroyWall) window.destroyWall(hitWallIndex);
-                    
                     this.bouncesLeft--;
-                    if (this.bouncesLeft <= 0) {
-                        this.dead = true;
-                        createExplosion(this.x, this.y, this.color);
-                    }
+                    if (this.bouncesLeft <= 0) { this.dead = true; createExplosion(this.x, this.y, this.color); }
                     break; 
                 }
 
@@ -342,8 +355,7 @@ class Bullet {
         if(this.type === 'mini') { ctx.fillStyle = this.color; ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(-4, -2); ctx.lineTo(-4, 2); ctx.fill(); } 
         else if(this.type === 'frag') { ctx.fillStyle = (Math.floor(this.life/10)%2===0) ? "#fff" : this.color; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth=1; ctx.stroke(); } 
         else if(this.type === 'flame') {
-            let alpha = this.life / this.maxLife;
-            ctx.globalAlpha = alpha;
+            let alpha = this.life / this.maxLife; ctx.globalAlpha = alpha;
             ctx.fillStyle = (this.life > 30) ? '#ffff00' : '#ff5722'; 
             ctx.shadowBlur = 10; ctx.shadowColor = '#ff5722';
             ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
@@ -374,6 +386,12 @@ class Tank {
         this.startX=x; this.startY=y; this.color=color; this.name=name; this.ctrls=ctrls; this.uiId=uiId;
         this.pKey = name === "P1" ? "p1" : "p2"; 
         this.isAI = isAI;
+        this.lastTrackX = x; this.lastTrackY = y;
+        this.reset();
+        this.targetX = x;
+        this.targetY = y;
+        this.targetAngle = this.angle;
+        
         this.reset();
     }
     reset() {
@@ -386,16 +404,35 @@ class Tank {
         this.aiPathTimer = 0; this.aiCurrentPath = []; this.aiTargetCell = null;
         this.trackTimer = 0;
         this.needsTriggerReset = false; 
-        
-        // --- KHỞI TẠO MÁU ---
         this.hp = MAX_HP;
         this.updateHPUI();
-        
-        // AI Specific
-        this.aiMode = 'SEEK'; 
-        this.aiAimLockTimer = 0;
-        this.aiIdealAngle = 0;
-        this.aiReactionCounter = 0;
+        this.aiMode = 'SEEK'; this.aiAimLockTimer = 0; this.aiIdealAngle = 0; this.aiReactionCounter = 0;
+        this.lastTrackX = this.x; this.lastTrackY = this.y;
+        this.targetX = this.x;
+        this.targetY = this.y;
+        this.targetAngle = this.angle;
+    }
+
+    interpolate(dt = 1) {
+        // Hệ số làm mượt (0.1 = chậm/mượt, 0.5 = nhanh/gắt). 
+        // 0.2 * dt là mức cân bằng tốt.
+        const smoothFactor = 0.2 * dt; 
+
+        // Làm mượt vị trí X, Y
+        this.x += (this.targetX - this.x) * smoothFactor;
+        this.y += (this.targetY - this.y) * smoothFactor;
+
+        // Làm mượt góc quay (Xử lý trường hợp quay qua mốc 0/360 độ)
+        let diff = this.targetAngle - this.angle;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.angle += diff * smoothFactor;
+
+        // Nếu khoảng cách quá xa (ví dụ mới hồi sinh), thì dịch chuyển ngay lập tức (Teleport)
+        if (Math.hypot(this.targetX - this.x, this.targetY - this.y) > 200) {
+            this.x = this.targetX;
+            this.y = this.targetY;
+        }
     }
 
     setWeapon(type) { this.weaponType = type; this.ammo = WEAPONS[type].ammo; this.maxAmmo = WEAPONS[type].ammo; this.cooldownTimer=0; }
@@ -403,22 +440,12 @@ class Tank {
     updateHPUI() {
         let barId = (this.name === "P1") ? "hp-p1" : "hp-p2";
         let barEl = document.getElementById(barId);
-        
         if (barEl) {
-            // MỚI: Dùng biến isDeathmatch để kiểm tra
-            if (!isDeathmatch) {
-                barEl.style.width = "0%";
-                barEl.parentElement.style.opacity = "0";
-                return;
-            }
-            
+            if (typeof isDeathmatch !== 'undefined' && !isDeathmatch) { barEl.style.width = "0%"; barEl.parentElement.style.opacity = "0"; return; }
             barEl.parentElement.style.opacity = "1";
-            let pct = (this.hp / MAX_HP) * 100;
-            if (pct < 0) pct = 0;
+            let pct = (this.hp / MAX_HP) * 100; if (pct < 0) pct = 0;
             barEl.style.width = pct + "%";
-            
-            if (pct <= 30) barEl.classList.add('hp-critical');
-            else barEl.classList.remove('hp-critical');
+            if (pct <= 30) barEl.classList.add('hp-critical'); else barEl.classList.remove('hp-critical');
         }
     }
 
@@ -434,8 +461,7 @@ class Tank {
             return;
         }
 
-        // --- MỚI: CHẾ ĐỘ DEATHMATCH ---
-        if (isDeathmatch) {
+        if (typeof isDeathmatch !== 'undefined' && isDeathmatch) {
             let damage = 20; 
             if (bullet) {
                 let typeKey = 'NORMAL';
@@ -445,79 +471,112 @@ class Tank {
                 else if(bullet.type === 'drill') typeKey = 'DRILL';
                 else if(bullet.type === 'flame') typeKey = 'FLAME';
                 else if(bullet.type === 'frag') typeKey = 'FRAG';
-                
                 damage = DAMAGE_TABLE[typeKey] || 20;
                 createHitEffect(this.x, this.y, this.color);
                 bullet.dead = true; 
-            } else {
-                damage = DAMAGE_TABLE.LASER;
-                createHitEffect(this.x, this.y, "#fff");
-            }
-
-            this.hp -= damage;
-            this.updateHPUI();
-
+            } else { damage = DAMAGE_TABLE.LASER; createHitEffect(this.x, this.y, "#fff"); }
+            this.hp -= damage; this.updateHPUI();
             if (this.hp > 0) return; 
         }
-        // -----------------------------
 
-        this.dead = true;
-        this.hp = 0;
-        this.updateHPUI();
-
+        this.dead = true; this.hp = 0; this.updateHPUI();
         createExplosion(this.x, this.y, this.color, true);
         if (bullet) bullet.dead = true;
         
         const msgBox = document.getElementById('gameMessage');
+        
+        // Logic xác định thắng thua
         if (p1.dead && p2.dead) {
             if(roundEndTimer) clearTimeout(roundEndTimer); roundEnding = true;
+            
+            // [MỚI] Gửi thông báo DRAW cho Client nếu là Host
+            if (typeof isOnline !== 'undefined' && isOnline && typeof isHost !== 'undefined' && isHost && window.sendRoundEnd) {
+                window.sendRoundEnd("DRAW!", "#fff");
+            }
+
             msgBox.innerText = "DRAW!"; msgBox.style.color = "#fff"; msgBox.style.display = "block"; setTimeout(resetRound, 2000);
         } else {
             roundEndTimer = setTimeout(() => {
                 roundEnding = true;
+                let resultText = "";
+                let resultColor = "#fff";
+
                 if (p1.dead && !p2.dead) { 
                     scores.p2++; 
-                    msgBox.innerText = "RED WINS!"; msgBox.style.color = "#d32f2f"; 
+                    resultText = "RED WINS!"; 
+                    resultColor = "#d32f2f";
                 }
                 else if (p2.dead && !p1.dead) { 
                     scores.p1++; 
-                    msgBox.innerText = "GREEN WINS!"; msgBox.style.color = "#4CAF50";
+                    resultText = "GREEN WINS!"; 
+                    resultColor = "#4CAF50";
                 }
+                
+                // Cập nhật điểm số local
                 document.getElementById('s1').innerText = scores.p1; document.getElementById('s2').innerText = scores.p2;
-                msgBox.style.display = "block"; setTimeout(resetRound, 2000);
-            }, 3000);
+                
+                // Hiển thị thông báo trên Host
+                msgBox.innerText = resultText; 
+                msgBox.style.color = resultColor;
+                msgBox.style.display = "block"; 
+
+                // [MỚI] Gửi thông báo THẮNG/THUA cho Client nếu là Host
+                if (typeof isOnline !== 'undefined' && isOnline && typeof isHost !== 'undefined' && isHost && window.sendRoundEnd) {
+                    window.sendRoundEnd(resultText, resultColor);
+                }
+
+                setTimeout(resetRound, 2000);
+            }, 3000); // Host đợi 3 giây để sync animations rồi mới báo kết quả
         }
     }
 
-    update(walls, powerups) {
+    // Cập nhật: Input mạng cũng cần dt
+    overrideInput(netInput, dt = 1) {
+        if (!netInput || (this.name !== "P2" && this.name !== "CLIENT")) return; 
+        let spd = 0; let firing = false;
+
+        if (netInput.left) this.angle -= 0.05 * dt; 
+        if (netInput.right) this.angle += 0.05 * dt;
+        if (netInput.up) spd = 2; else if (netInput.down) spd = -2;
+        if (netInput.shoot) firing = true;
+
+        if (this.needsTriggerReset) { if (!firing) this.needsTriggerReset = false; else firing = false; }
+        if (firing) this.shoot(walls);
+
+        if(spd !== 0) {
+            this.currentVx = Math.cos(this.angle)*spd; this.currentVy = Math.sin(this.angle)*spd;
+            if(!checkWallCollision(this.x + this.currentVx * dt, this.y, this.hitbox)) { this.x += this.currentVx * dt; }
+            if(!checkWallCollision(this.x, this.y + this.currentVy * dt, this.hitbox)) { this.y += this.currentVy * dt; }
+            this.drawTracks();
+        }
+    }
+
+    checkMovementAndTrack() {
+        const distMoved = Math.hypot(this.x - this.lastTrackX, this.y - this.lastTrackY);
+        if (distMoved > 3) {
+            this.drawTracks();
+            this.lastTrackX = this.x; this.lastTrackY = this.y;
+        }
+    }
+
+    // Cập nhật: Thêm dt vào logic update
+    update(walls, powerups, dt = 1) {
         if(this.dead) return;
-        if(this.cooldownTimer>0) this.cooldownTimer--;
-        if (this.activeShield) { this.shieldTimer--; if (this.shieldTimer <= 0) { this.activeShield = false; } }
+        if(this.cooldownTimer>0) this.cooldownTimer -= 1 * dt;
+        if (this.activeShield) { this.shieldTimer -= 1 * dt; if (this.shieldTimer <= 0) { this.activeShield = false; } }
         if (this.spinning) {
-            this.angle += 0.01; this.spinTimer--;
+            this.angle += 0.01 * dt; this.spinTimer -= 1 * dt;
             activeLasers.push(new LaserBeam(this.x, this.y, this.angle, this, 2)); activeLasers.push(new LaserBeam(this.x, this.y, this.angle + Math.PI, this, 2));
-            if(this.spinTimer % 10 === 0) createSparks(this.x, this.y, WEAPONS.DEATHRAY.color, 2);
-            if (this.spinTimer <= 0) { 
-                this.spinning = false; 
-                this.setWeapon('NORMAL'); 
-                this.needsTriggerReset = true; 
-            }
+            if(Math.floor(this.spinTimer) % 10 === 0) createSparks(this.x, this.y, WEAPONS.DEATHRAY.color, 2);
+            if (this.spinTimer <= 0) { this.spinning = false; this.setWeapon('NORMAL'); this.needsTriggerReset = true; }
             return;
         }
         
-        if(this.weaponType==='NORMAL' && this.ammo<this.maxAmmo) { 
-            this.reloadTimer++; if(this.reloadTimer>=RELOAD_TIME){ this.ammo++; this.reloadTimer=0; } 
-        } else this.reloadTimer=0;
-        
-        if(this.weaponType!=='NORMAL' && this.ammo<=0) {
-            this.setWeapon('NORMAL');
-            this.needsTriggerReset = true;
-        }
+        if(this.weaponType==='NORMAL' && this.ammo<this.maxAmmo) { this.reloadTimer += 1 * dt; if(this.reloadTimer>=RELOAD_TIME){ this.ammo++; this.reloadTimer=0; } } else this.reloadTimer=0;
+        if(this.weaponType!=='NORMAL' && this.ammo<=0) { this.setWeapon('NORMAL'); this.needsTriggerReset = true; }
 
         if (!this.isAI) {
-            let spd = 0;
-            let firing = false;
-
+            let spd = 0; let firing = false;
             if (isMobile) {
                 let input = this.pKey === 'p1' ? mobileInput.p1 : mobileInput.p2;
                 if (Math.abs(input.x) > 0.1 || Math.abs(input.y) > 0.1) {
@@ -525,31 +584,25 @@ class Tank {
                      let diff = targetAngle - this.angle;
                      while(diff < -Math.PI) diff += Math.PI*2; while(diff > Math.PI) diff -= Math.PI*2;
                      let sens = mobileSettings[this.pKey].sensitivity;
-                     this.angle += Math.sign(diff) * Math.min(Math.abs(diff), 0.1 * sens);
+                     this.angle += Math.sign(diff) * Math.min(Math.abs(diff), 0.1 * sens * dt); // Áp dụng dt
                      spd = 2; 
                 }
                 if (input.fire) firing = true;
             }  else {
                 let c = controls[this.pKey];
-                if(keys[c.left]) this.angle-=0.05; if(keys[c.right]) this.angle+=0.05;
-                if(keys[c.up]) spd=2; else if(keys[c.down]) spd=-2;
+                if(keys[c.left]) this.angle -= 0.05 * dt; if(keys[c.right]) this.angle += 0.05 * dt;
+                if(keys[c.up]) spd = 2; else if(keys[c.down]) spd = -2;
                 if (keys[c.shoot]) firing = true;
             }
             
-            if (this.needsTriggerReset) {
-                if (!firing) {
-                    this.needsTriggerReset = false; 
-                } else {
-                    firing = false; 
-                }
-            }
-
+            if (this.needsTriggerReset) { if (!firing) this.needsTriggerReset = false; else firing = false; }
             if (firing) this.shoot(walls);
 
             if(spd!==0) {
                 this.currentVx = Math.cos(this.angle)*spd; this.currentVy = Math.sin(this.angle)*spd;
-                if(!checkWallCollision(this.x + this.currentVx, this.y, this.hitbox)) { this.x += this.currentVx; }
-                if(!checkWallCollision(this.x, this.y + this.currentVy, this.hitbox)) { this.y += this.currentVy; }
+                // Áp dụng dt cho di chuyển
+                if(!checkWallCollision(this.x + this.currentVx * dt, this.y, this.hitbox)) { this.x += this.currentVx * dt; }
+                if(!checkWallCollision(this.x, this.y + this.currentVy * dt, this.hitbox)) { this.y += this.currentVy * dt; }
                 this.drawTracks();
             }
         } 
@@ -562,33 +615,19 @@ class Tank {
             }
         }
 
-        // --- [CÁCH 1: HIỆU ỨNG KHÓI/LỬA KHI HƯ HẠI] ---
-        if (isDeathmatch && !this.dead) {
-            // Máu dưới 50%: Bốc khói xám nhẹ (10% cơ hội mỗi frame)
-            if (this.hp <= 50 && this.hp > 20) {
-                if (Math.random() < 0.1) {
-                    particles.push(new Particle(this.x + (Math.random()-0.5)*10, this.y + (Math.random()-0.5)*10, 'smoke', '#555'));
-                }
-            }
-            // Máu dưới 20%: Bốc lửa và khói đen đậm
-            else if (this.hp <= 20) {
-                if (Math.random() < 0.2) particles.push(new Particle(this.x, this.y, 'fire', '#ff5722'));
-                if (Math.random() < 0.2) particles.push(new Particle(this.x, this.y, 'smoke', '#222'));
-            }
+        if (typeof isDeathmatch !== 'undefined' && isDeathmatch && !this.dead) {
+            if (this.hp <= 50 && this.hp > 20) { if (Math.random() < 0.1) particles.push(new Particle(this.x + (Math.random()-0.5)*10, this.y + (Math.random()-0.5)*10, 'smoke', '#555')); }
+            else if (this.hp <= 20) { if (Math.random() < 0.2) particles.push(new Particle(this.x, this.y, 'fire', '#ff5722')); if (Math.random() < 0.2) particles.push(new Particle(this.x, this.y, 'smoke', '#222')); }
         }
     }
     drawTracks() {
-        this.trackTimer++;
-        if (this.trackTimer % 8 === 0) {
-            tracks.push(new TrackMark(this.x, this.y, this.angle));
-        }
+        this.trackTimer++; if (this.trackTimer % 8 === 0) { tracks.push(new TrackMark(this.x, this.y, this.angle)); }
     }
     shoot(walls) {
         if(this.dead || this.ammo<=0 || this.cooldownTimer>0) return;
         if (this.weaponType === 'SHIELD') {
             this.activeShield = true; this.shieldTimer = 5 * 60; this.setWeapon('NORMAL'); this.ammo = 5; this.cachedAmmo = -1; 
-            this.needsTriggerReset = true; 
-            createSparks(this.x, this.y, "#fff", 30); return; 
+            this.needsTriggerReset = true; createSparks(this.x, this.y, "#fff", 30); return; 
         }
         if (this.weaponType === 'MINE') {
             let mx = this.x - Math.cos(this.angle) * 26; let my = this.y - Math.sin(this.angle) * 26;
@@ -600,13 +639,7 @@ class Tank {
         let muzzleDist = 20; let tipX = this.x + Math.cos(this.angle) * muzzleDist; let tipY = this.y + Math.sin(this.angle) * muzzleDist;
         let midX = this.x + Math.cos(this.angle) * (muzzleDist/2); let midY = this.y + Math.sin(this.angle) * (muzzleDist/2);
         let ignoreWallBlock = (this.weaponType === 'DEATHRAY' || this.weaponType === 'LASER' || this.weaponType === 'FLAME');
-        
-        if (!ignoreWallBlock) {
-            if(checkWallCollision(tipX, tipY, 2) || checkWallCollision(midX, midY, 2)) {
-                createSparks(tipX, tipY, "#888", 5); 
-                return; 
-            }
-        }
+        if (!ignoreWallBlock) { if(checkWallCollision(tipX, tipY, 2) || checkWallCollision(midX, midY, 2)) { createSparks(tipX, tipY, "#888", 5); return; } }
 
         if(this.weaponType === 'LASER') {
             activeLasers.push(new LaserBeam(this.x, this.y, this.angle, this)); shakeAmount = 10; this.cooldownTimer = WEAPONS.LASER.cooldown; 
@@ -710,7 +743,7 @@ function drawItem(ctxToUse, type) {
         case 'MINE': ctxToUse.strokeStyle = WEAPONS.MINE.color; ctxToUse.lineWidth = 2; ctxToUse.beginPath(); ctxToUse.arc(0,0, 7, 0, Math.PI*2); ctxToUse.stroke(); for(let i=0; i<4; i++) { ctxToUse.save(); ctxToUse.rotate(i * Math.PI/2 + Math.PI/4); ctxToUse.beginPath(); ctxToUse.moveTo(7, 0); ctxToUse.lineTo(12, 0); ctxToUse.stroke(); ctxToUse.restore(); } ctxToUse.shadowColor = "red"; ctxToUse.shadowBlur = 10; ctxToUse.fillStyle = "red"; ctxToUse.beginPath(); ctxToUse.arc(0,0, 3, 0, Math.PI*2); ctxToUse.fill(); break;
         case 'SHIELD': ctxToUse.strokeStyle = WEAPONS.SHIELD.color; ctxToUse.lineWidth = 2; ctxToUse.strokeRect(-6, -2, 12, 6); ctxToUse.strokeRect(-2, -6, 4, 4); ctxToUse.shadowBlur = 15; ctxToUse.lineWidth = 3; ctxToUse.beginPath(); ctxToUse.arc(0,0, 13, 0, Math.PI*2); ctxToUse.stroke(); break;
         case 'FLAME': ctxToUse.fillStyle = "#ff5722"; ctxToUse.beginPath(); ctxToUse.moveTo(-5, 8); ctxToUse.quadraticCurveTo(0, -15, 5, 8); ctxToUse.fill(); ctxToUse.fillStyle = "#ff9800"; ctxToUse.beginPath(); ctxToUse.arc(0, 5, 3, 0, Math.PI*2); ctxToUse.fill(); break;
-	case 'DRILL':
+	    case 'DRILL':
             ctxToUse.fillStyle = WEAPONS.DRILL.color;
             ctxToUse.beginPath(); ctxToUse.moveTo(-8, -6); ctxToUse.lineTo(10, 0); ctxToUse.lineTo(-8, 6); ctxToUse.fill();
             ctxToUse.strokeStyle = "#fff"; ctxToUse.lineWidth = 2;
@@ -756,69 +789,28 @@ function updateAmmoUI(p) {
 
 class Barrel {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.radius = 16; // <--- ĐÃ GIẢM KÍCH THƯỚC (Cũ là 20)
-        this.active = true;
+        this.x = x; this.y = y; this.radius = 16; this.active = true;
     }
 
     draw() {
         if (!this.active) return;
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        
-        // Kích thước cạnh hình vuông
-        const size = this.radius * 2; 
-        const half = this.radius;
-
-        // 1. ĐỔ BÓNG
-        ctx.shadowBlur = 10; 
-        ctx.shadowColor = "rgba(0,0,0,0.6)";
-        
-        // 2. VẼ NỀN GỖ SẪM
-        ctx.fillStyle = "#3e2723"; 
-        ctx.fillRect(-half, -half, size, size);
-
-        ctx.shadowBlur = 0;
-
-        // 3. VẼ CÁC THANH GỖ NGANG
-        ctx.fillStyle = "#4e342e"; 
-        const gap = 2;
-        const plankH = (size - gap * 2) / 3;
-        
-        // Vẽ 3 thanh
+        ctx.save(); ctx.translate(this.x, this.y);
+        const size = this.radius * 2; const half = this.radius;
+        ctx.shadowBlur = 10; ctx.shadowColor = "rgba(0,0,0,0.6)";
+        ctx.fillStyle = "#3e2723"; ctx.fillRect(-half, -half, size, size); ctx.shadowBlur = 0;
+        ctx.fillStyle = "#4e342e"; const gap = 2; const plankH = (size - gap * 2) / 3;
         ctx.fillRect(-half + 2, -half + 2, size - 4, plankH - 1);
         ctx.fillRect(-half + 2, -half + 2 + plankH, size - 4, plankH - 1);
         ctx.fillRect(-half + 2, -half + 2 + plankH * 2, size - 4, plankH - 1);
-
-        // 4. VẼ KHUNG VIỀN (Nét mảnh hơn cho thùng nhỏ)
-        ctx.strokeStyle = "#281914"; 
-        ctx.lineWidth = 2; // <--- Giảm độ dày nét (Cũ là 3)
-        ctx.strokeRect(-half, -half, size, size);
-
-        // 5. ĐINH TÁN KIM LOẠI
-        ctx.fillStyle = "#a1887f"; 
-        const boltInset = 4; // <--- Giảm khoảng cách lề (Cũ là 5)
-        
+        ctx.strokeStyle = "#281914"; ctx.lineWidth = 2; ctx.strokeRect(-half, -half, size, size);
+        ctx.fillStyle = "#a1887f"; const boltInset = 4; 
         ctx.beginPath(); ctx.arc(-half + boltInset, -half + boltInset, 1.5, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(half - boltInset, -half + boltInset, 1.5, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(-half + boltInset, half - boltInset, 1.5, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(half - boltInset, half - boltInset, 1.5, 0, Math.PI*2); ctx.fill();
-
-        // 6. CHỮ TNT (Nhỏ hơn)
-        ctx.shadowColor = "#ff3d00"; 
-        ctx.shadowBlur = 4;
-        ctx.fillStyle = "#ff5722"; 
-        ctx.font = "900 10px Arial Black"; // <--- Giảm cỡ chữ (Cũ là 12px)
-        ctx.textAlign = "center"; 
-        ctx.textBaseline = "middle";
-        ctx.fillText("TNT", 0, 1); // Chỉnh lại vị trí y chút xíu cho cân
-        
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = "rgba(0,0,0,0.5)";
-        ctx.lineWidth = 0.5;
-        ctx.strokeText("TNT", 0, 1);
-
+        ctx.shadowColor = "#ff3d00"; ctx.shadowBlur = 4; ctx.fillStyle = "#ff5722"; ctx.font = "900 10px Arial Black"; 
+        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("TNT", 0, 1); 
+        ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 0.5; ctx.strokeText("TNT", 0, 1);
         ctx.restore();
     }
 
@@ -826,46 +818,25 @@ class Barrel {
         if (!this.active) return;
         this.active = false;
         
-        // Hiệu ứng nổ
+        // Gọi createExplosion, hàm này sẽ tự động xử lý gửi mạng trong game.js
         createExplosion(this.x, this.y, "#ffeb3b", true); 
         createExplosion(this.x, this.y, "#ff5722", true); 
-
-        // Văng mảnh gỗ sẫm màu
-        for(let i=0; i<8; i++) {
-            let debrisColor = Math.random() > 0.5 ? '#3e2723' : '#5d4037';
-            particles.push(new Particle(this.x, this.y, 'debris', debrisColor));
-        }
-
-        // Gây sát thương & Đẩy lùi
-        const range = 100; 
-        const dmg = 40;    
-
+        
+        for(let i=0; i<8; i++) { let debrisColor = Math.random() > 0.5 ? '#3e2723' : '#5d4037'; particles.push(new Particle(this.x, this.y, 'debris', debrisColor)); }
+        
+        const range = 100; const dmg = 40;    
         [p1, p2].forEach(p => {
             if (!p.dead && dist(this.x, this.y, p.x, p.y) < range) {
                 let angle = Math.atan2(p.y - this.y, p.x - this.x);
-                p.x += Math.cos(angle) * 20;
-                p.y += Math.sin(angle) * 20;
-                p.hp -= dmg;
-                p.updateHPUI();
+                p.x += Math.cos(angle) * 20; p.y += Math.sin(angle) * 20;
+                p.hp -= dmg; p.updateHPUI();
                 if (p.hp <= 0) p.takeDamage(null, null); 
             }
         });
-
-        // Phá tường
         for (let i = walls.length - 1; i >= 0; i--) {
-            let w = walls[i];
-            let wx = w.x + w.w / 2;
-            let wy = w.y + w.h / 2;
-            if (dist(this.x, this.y, wx, wy) < range - 20) {
-                destroyWall(i); 
-            }
+            let w = walls[i]; let wx = w.x + w.w / 2; let wy = w.y + w.h / 2;
+            if (dist(this.x, this.y, wx, wy) < range - 20) { destroyWall(i); }
         }
-        
-        // Chuỗi phản ứng
-        barrels.forEach(b => {
-            if (b.active && b !== this && dist(this.x, this.y, b.x, b.y) < range) {
-                setTimeout(() => b.explode(), 150); 
-            }
-        });
+        barrels.forEach(b => { if (b.active && b !== this && dist(this.x, this.y, b.x, b.y) < range) { setTimeout(() => b.explode(), 150); } });
     }
 }

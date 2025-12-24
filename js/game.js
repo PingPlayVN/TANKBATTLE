@@ -1,3 +1,5 @@
+// js/game.js
+
 // --- KHỞI TẠO CANVAS PHỤ CHO HIỆU ỨNG BÓNG TỐI (OFF-SCREEN CANVAS) ---
 const shadowCanvas = document.createElement('canvas');
 shadowCanvas.width = 1365;
@@ -28,7 +30,6 @@ function generateNoiseTexture() {
 generateNoiseTexture();
 
 // --- HELPER PHYSICS ---
-// CẬP NHẬT: Hàm checkWallCollision giờ đây kiểm tra cả thùng TNT (hình vuông)
 function checkWallCollision(x, y, radius) {
     // 1. Check tường (Hình chữ nhật)
     for (let w of walls) { 
@@ -375,7 +376,7 @@ function castRays(sourceX, sourceY, startAngle, endAngle, radius) {
     return points;
 }
 
-// --- HỆ THỐNG ÁNH SÁNG (PHIÊN BẢN TRONG SUỐT NHƯ AURA) ---
+// --- HỆ THỐNG ÁNH SÁNG ---
 function renderLighting() {
     shadowCtx.clearRect(0, 0, shadowCanvas.width, shadowCanvas.height);
 
@@ -395,19 +396,16 @@ function renderLighting() {
 
             let poly = castRays(tank.x, tank.y, startA, endA, RANGE);
 
-            // --- BƯỚC 1: ĐỤC LỖ (Cắt bóng tối) ---
-            shadowCtx.globalCompositeOperation = 'destination-out';
-            
             // Cắt Beam
+            shadowCtx.globalCompositeOperation = 'destination-out';
             shadowCtx.beginPath();
             shadowCtx.moveTo(tank.x, tank.y);
             for (let p of poly) shadowCtx.lineTo(p.x, p.y);
             shadowCtx.closePath();
             
-            // Gradient Cắt mềm mại
             let cutGrd = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, RANGE);
             cutGrd.addColorStop(0, "rgba(0,0,0,1)");     
-            cutGrd.addColorStop(0.7, "rgba(0,0,0,0.8)"); // Giảm độ cắt ở xa
+            cutGrd.addColorStop(0.7, "rgba(0,0,0,0.8)"); 
             cutGrd.addColorStop(1, "rgba(0,0,0,0)");     
             shadowCtx.fillStyle = cutGrd;
             shadowCtx.fill();
@@ -421,10 +419,10 @@ function renderLighting() {
             shadowCtx.fillStyle = haloCut;
             shadowCtx.fill();
 
-            // --- BƯỚC 2: TÔ MÀU (SIÊU TRONG SUỐT) ---
+            // Tô màu
             shadowCtx.globalCompositeOperation = 'lighter'; 
 
-            // A. Vẽ Bụi (Texture siêu mờ)
+            // Vẽ Bụi
             shadowCtx.save(); 
             shadowCtx.beginPath();
             shadowCtx.moveTo(tank.x, tank.y);
@@ -441,24 +439,19 @@ function renderLighting() {
             shadowCtx.fillRect(-moveX, -moveY, canvas.width, canvas.height); 
             shadowCtx.restore(); 
 
-            // B. Vẽ Ánh Sáng Trắng (MỨC 0.02 - Trong suốt như kính)
+            // Vẽ Ánh Sáng Trắng
             shadowCtx.beginPath();
             shadowCtx.moveTo(tank.x, tank.y);
             for (let p of poly) shadowCtx.lineTo(p.x, p.y);
             shadowCtx.closePath();
 
             let colorGrd = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, RANGE);
-            
-            // [CHỈNH SỬA QUAN TRỌNG NHẤT]
-            // Alpha 0.02: Cực thấp để không bị đục
-            // Stop 0.7: Màu tắt sớm hơn phạm vi cắt, giúp đuôi đèn hoàn toàn trong veo
             colorGrd.addColorStop(0, "rgba(255, 255, 255, 0.02)"); 
             colorGrd.addColorStop(0.7, "rgba(0,0,0,0)");
-            
             shadowCtx.fillStyle = colorGrd;
             shadowCtx.fill();
 
-            // C. Aura mờ (Mức 0.04 - Hơi sáng hơn đèn một chút để nổi bật xe)
+            // Aura mờ
             shadowCtx.beginPath();
             shadowCtx.arc(tank.x, tank.y, 50, 0, Math.PI * 2);
             let haloColor = shadowCtx.createRadialGradient(tank.x, tank.y, 0, tank.x, tank.y, 50);
@@ -506,7 +499,6 @@ function renderLighting() {
             }
         }
         
-        // Render halo cho thùng thuốc nổ (để dễ thấy trong đêm)
         for (let bar of barrels) {
             if (bar.active) drawSimpleHalo(bar.x, bar.y, 80, 0.7);
         }
@@ -552,62 +544,53 @@ function generateMaze() {
     let arr=Array.from({length:grid.length},(_,i)=>i); for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
     p1.startX=grid[arr[0]].i*cellSize+cellSize/2; p1.startY=grid[arr[0]].j*cellSize+cellSize/2;
     p2.startX=grid[arr[1]].i*cellSize+cellSize/2; p2.startY=grid[arr[1]].j*cellSize+cellSize/2;
-    if(gameMode === 'pve') { p2.isAI = true; p2.name = "BOT"; } else { p2.isAI = false; p2.name = "P2"; }
+    
+    // Logic P2 Online
+    if (isOnline) {
+        if (isHost) {
+            p2.isAI = false; 
+            p2.name = "CLIENT"; // P2 là người join
+        } else {
+            // Client ko cần quan tâm P2 setup vì nhận state từ Host
+            p2.isAI = false;
+        }
+    } else {
+        if(gameMode === 'pve') { p2.isAI = true; p2.name = "BOT"; } else { p2.isAI = false; p2.name = "P2"; }
+    }
+    
     p1.reset(); p2.reset();
     timerSpawnItems = gameSettings.spawnTime * 60; mazeGrid = grid; 
 
-    // --- LOGIC MỚI: SINH THÙNG TNT ÉP SÁT TƯỜNG (CHỈ TRONG DEATHMATCH) ---
+    // --- LOGIC MỚI: SINH THÙNG TNT (CHỈ DEATHMATCH) ---
     if (isDeathmatch) {
-        let barrelCount = 5 + Math.floor(Math.random() * 4); // Số lượng 5-8 thùng (Giảm 2/3 so với cũ)
+        let barrelCount = 5 + Math.floor(Math.random() * 4);
         let placedCount = 0;
         let attempts = 0;
-
-        // Vòng lặp thử tìm vị trí
         while (placedCount < barrelCount && attempts < 1000) {
             attempts++;
-            
-            // 1. CHỌN MỘT BỨC TƯỜNG BẤT KỲ ĐỂ "DỰA VÀO"
             if (walls.length === 0) break;
             let w = walls[Math.floor(Math.random() * walls.length)];
-            
-            // 2. CHỌN 1 TRONG 4 HƯỚNG CỦA TƯỜNG
             let side = Math.floor(Math.random() * 4); 
-            let bx, by;
-            const r = 16;  // Bán kính thùng (khớp với class Barrel)
-            const gap = 2; // Khoảng hở nhỏ
-            
-            if (side === 0) { // TRÊN
-                bx = w.x + Math.random() * w.w; 
-                by = w.y - r - gap;             
-            } else if (side === 1) { // DƯỚI
-                bx = w.x + Math.random() * w.w;
-                by = w.y + w.h + r + gap;
-            } else if (side === 2) { // TRÁI
-                bx = w.x - r - gap;
-                by = w.y + Math.random() * w.h;
-            } else { // PHẢI
-                bx = w.x + w.w + r + gap;
-                by = w.y + Math.random() * w.h;
-            }
+            let bx, by; const r = 16; const gap = 2;
+            if (side === 0) { bx = w.x + Math.random() * w.w; by = w.y - r - gap; } 
+            else if (side === 1) { bx = w.x + Math.random() * w.w; by = w.y + w.h + r + gap; } 
+            else if (side === 2) { bx = w.x - r - gap; by = w.y + Math.random() * w.h; } 
+            else { bx = w.x + w.w + r + gap; by = w.y + Math.random() * w.h; }
 
-            // 3. KIỂM TRA HỢP LỆ
             if (bx < 40 || bx > canvas.width - 40 || by < 40 || by > canvas.height - 40) continue;
-            // Check tường khác (Tránh kẹt vào góc)
             if (checkWallCollision(bx, by, r - 5)) continue;
-            // Check xa người chơi
             if (dist(bx, by, p1.x, p1.y) < 150) continue;
             if (dist(bx, by, p2.x, p2.y) < 150) continue;
-
-            // Check chồng chéo thùng khác
-            let overlap = false;
-            for (let existing of barrels) { 
-                if (dist(bx, by, existing.x, existing.y) < r * 2.2) overlap = true; 
-            }
+            let overlap = false; for (let existing of barrels) { if (dist(bx, by, existing.x, existing.y) < r * 2.2) overlap = true; }
             if (overlap) continue;
-
             barrels.push(new Barrel(bx, by));
             placedCount++;
         }
+    }
+
+    // [ONLINE SYNC] Gửi map cho client nếu là Host
+    if (isOnline && isHost && window.sendMapData) {
+        setTimeout(() => { window.sendMapData(); }, 100);
     }
 }
 
@@ -623,150 +606,201 @@ function spawnPowerUp() {
 
 // Effects Helpers
 function explodeFrag(x, y, color) { for(let i=0; i<13; i++) { let angle = Math.random() * Math.PI * 2; bullets.push(new Bullet(x, y, angle, color, 'fragment', null)); } createExplosion(x, y, color); createSmoke(x, y); }
-function createHitEffect(x, y, color = '#fff') { 
-    for(let i = 0; i < 6; i++) {
-        particles.push(new Particle(x, y, 'spark', color));
-    }
-    for(let i = 0; i < 3; i++) {
-        particles.push(new Particle(x, y, 'debris', '#888'));
-    }
-}
+
 function createSparks(x,y,c,n) { for(let i=0;i<n;i++) particles.push(new Particle(x,y,'spark',c)); }
-
-function createExplosion(x, y, color, big = false) { 
-    shakeAmount = big ? 25 : 15; // Rung màn hình
-    
-    // 1. Ánh sáng lóe lên
-    particles.push(new Particle(x, y, 'flash', '#fff'));
-    
-    // 2. Sóng xung kích (Shockwave)
-    particles.push(new Particle(x, y, 'shockwave', color === '#fff' ? '#aaa' : color));
-    if (big) particles.push(new Particle(x, y, 'shockwave', '#fff'));
-
-    // 3. Lửa và Khói
-    let fireCount = big ? 18 : 8;
-    let smokeCount = big ? 10 : 5;
-    
-    for(let i = 0; i < fireCount; i++) {
-        particles.push(new Particle(x, y, 'fire', '#ff5722'));
-    }
-    for(let i = 0; i < smokeCount; i++) {
-        particles.push(new Particle(x, y, 'smoke', '#555')); // Khói xám
-    }
-
-    // 4. Mảnh vỡ (Debris)
-    for(let i = 0; i < 6; i++) {
-        particles.push(new Particle(x, y, 'debris', color));
-    }
-}
 
 function createSmoke(x, y) { for(let i=0;i<2;i++) particles.push(new Particle(x,y,'smoke','#888')); }
 
+// [ĐÃ SỬA] Hàm tạo hiệu ứng nổ (Có hỗ trợ mạng)
+// isNetworkEvent: true nếu hàm này được gọi từ socket (Client nhận), false nếu do game logic gọi (Host)
+function createExplosion(x, y, color, big = false, isNetworkEvent = false) { 
+    shakeAmount = big ? 25 : 15; 
+    particles.push(new Particle(x, y, 'flash', '#fff'));
+    particles.push(new Particle(x, y, 'shockwave', color === '#fff' ? '#aaa' : color));
+    if (big) particles.push(new Particle(x, y, 'shockwave', '#fff'));
+    let fireCount = big ? 18 : 8; let smokeCount = big ? 10 : 5;
+    for(let i = 0; i < fireCount; i++) particles.push(new Particle(x, y, 'fire', '#ff5722'));
+    for(let i = 0; i < smokeCount; i++) particles.push(new Particle(x, y, 'smoke', '#555'));
+    for(let i = 0; i < 6; i++) particles.push(new Particle(x, y, 'debris', color));
+
+    // [ONLINE SYNC] Nếu là Host và không phải lệnh từ mạng, gửi cho Client
+    if (typeof isOnline !== 'undefined' && isOnline && typeof isHost !== 'undefined' && isHost && !isNetworkEvent && window.sendVFX) {
+        window.sendVFX('explosion', x, y, color, big);
+    }
+}
+
+// [ĐÃ SỬA] Hàm tạo hiệu ứng trúng đích (Có hỗ trợ mạng)
+function createHitEffect(x, y, color = '#fff', isNetworkEvent = false) { 
+    for(let i = 0; i < 6; i++) { particles.push(new Particle(x, y, 'spark', color)); }
+    for(let i = 0; i < 3; i++) { particles.push(new Particle(x, y, 'debris', '#888')); }
+    
+    // [ONLINE SYNC] Gửi effect này nếu muốn đồng bộ chi tiết (tùy chọn để giảm lag)
+    if (typeof isOnline !== 'undefined' && isOnline && typeof isHost !== 'undefined' && isHost && !isNetworkEvent && window.sendVFX) {
+        window.sendVFX('hit', x, y, color);
+    }
+}
+
 function resetRound() { 
     bullets=[]; particles=[]; powerups=[]; activeLasers=[]; 
-    barrels = []; // Xóa thùng cũ
+    barrels = []; 
     msgBox.style.display="none"; roundEnding=false; 
     if(roundEndTimer) clearTimeout(roundEndTimer); 
     p1.activeShield = false; p2.activeShield = false; 
     tracks = []; 
     bgCtx.clearRect(0, 0, canvas.width, canvas.height); 
-    generateMaze(); 
+    
+    // [ONLINE SYNC] Nếu là Client thì không tự tạo map, chờ Host gửi
+    if (isOnline && !isHost) {
+        walls = [];
+        wallPath = new Path2D();
+        // Client chờ sự kiện 'MAP_DATA' từ network.js
+    } else {
+        generateMaze(); 
+    }
 }
 
 function loop() {
-    animationId = requestAnimationFrame(loop); if(gamePaused) return;
+    animationId = requestAnimationFrame(loop); 
+    if(gamePaused) return;
+
+    // --- PHẦN VẼ (RENDER) ---
+    // Phần này luôn chạy cho cả Host và Client
     let dx=0, dy=0; if(shakeAmount>0){ dx=(Math.random()-0.5)*shakeAmount; dy=(Math.random()-0.5)*shakeAmount; shakeAmount*=0.9; if(shakeAmount<0.5)shakeAmount=0; }
     
-    // 1. XÓA MÀN HÌNH CHÍNH & VẼ TƯỜNG (LỚP ĐÁY)
     ctx.save(); ctx.translate(dx,dy); ctx.clearRect(-dx,-dy,canvas.width,canvas.height); 
     ctx.fillStyle="#444"; ctx.fill(wallPath);
     
-    // 2. VẼ VẾT BÁNH XE (Lớp nền phụ)
     bgCtx.clearRect(0, 0, canvas.width, canvas.height); 
     for(let i=tracks.length-1; i>=0; i--) { let t = tracks[i]; t.update(); t.draw(bgCtx); if (t.life <= 0) tracks.splice(i, 1); }
 
-    // 3. TÍNH TOÁN & VẼ BÓNG TỐI (NẾU CÓ)
     if (isNightMode) {
         renderLighting(); 
-        // Vẽ lớp bóng tối ĐÈ LÊN tường (nhưng sẽ có lỗ thủng để lộ tường)
         ctx.drawImage(shadowCanvas, 0, 0);
     }
 
-    // 4. CẬP NHẬT LOGIC GAME
-    timerSpawnItems--; if(timerSpawnItems <= 0) { spawnPowerUp(); timerSpawnItems = gameSettings.spawnTime * 60; }
+    // --- PHẦN LOGIC (UPDATE) ---
     
-    // 5. VẼ CÁC ĐỐI TƯỢNG "SÁNG" (ĐÈ LÊN LỚP BÓNG TỐI)
-    // Để người chơi luôn nhìn thấy vật phẩm, đạn và xe tăng
-    for(let p of powerups) p.draw();
-    
-    // VẼ THÙNG THUỐC NỔ
-    for(let i = barrels.length - 1; i >= 0; i--) {
-        let bar = barrels[i];
-        if (!bar.active) { barrels.splice(i, 1); continue; }
-        bar.draw();
-    }
-
-    for(let b of bullets) { if(b.type === 'mine') b.draw(); }
-    for(let i=activeLasers.length-1; i>=0; i--) { let l = activeLasers[i]; l.update(); l.draw(); if(!l.active) activeLasers.splice(i, 1); }
-    
-    p1.update(walls, powerups); p1.draw(); updateAmmoUI(p1);
-    if (p2.isAI) updateAI(p2, p1); p2.update(walls, powerups); p2.draw(); updateAmmoUI(p2);
-    
-    // Update đạn & va chạm
-    for(let i=bullets.length-1; i>=0; i--){
-        let b=bullets[i]; b.update(walls); if(b.type !== 'mine') b.draw(); 
+    if (isOnline && !isHost) {
+        // --- LOGIC CHO CLIENT (KHÁCH) ---
+        if(window.sendClientInput) window.sendClientInput(); 
         
-        // KIỂM TRA ĐẠN BẮN TRÚNG THÙNG (MỚI: SỬ DỤNG HITBOX VUÔNG)
-        for (let bar of barrels) {
-            if (bar.active && !b.dead) {
-                // Tính toán hitbox hình vuông
-                let size = bar.radius * 2;
-                let left = bar.x - bar.radius;
-                let top = bar.y - bar.radius;
-                
-                // Dùng hàm circleRectCollide
-                if (circleRectCollide(b.x, b.y, b.radius, left, top, size, size)) {
-                    bar.explode();
-                    b.dead = true;
-                    break;
+        p1.interpolate();
+        p2.interpolate(); 
+        
+        p1.checkMovementAndTrack();
+        p2.checkMovementAndTrack();
+
+        for(let p of powerups) p.draw();
+        for(let bar of barrels) if(bar.active) bar.draw();
+        for(let b of bullets) b.draw(); 
+        
+        p1.draw(); 
+        p2.draw();
+
+        // [MỚI] THÊM DÒNG NÀY ĐỂ VẼ THANH ĐẠN (BOTTOM BAR) TRÊN CLIENT
+        updateAmmoUI(p1);
+        updateAmmoUI(p2);
+        
+        for(let i=particles.length-1;i>=0;i--){ let p=particles[i]; p.update(); p.draw(); if(p.life<=0) particles.splice(i,1); }
+
+    } else {
+        // --- LOGIC CHO HOST (HOẶC CHƠI OFFLINE) ---
+        // Máy Host chịu trách nhiệm tính toán toàn bộ game
+        
+        timerSpawnItems--; if(timerSpawnItems <= 0) { spawnPowerUp(); timerSpawnItems = gameSettings.spawnTime * 60; }
+
+        for(let p of powerups) p.draw();
+        for(let i = barrels.length - 1; i >= 0; i--) { let bar = barrels[i]; if (!bar.active) { barrels.splice(i, 1); continue; } bar.draw(); }
+        for(let b of bullets) { if(b.type === 'mine') b.draw(); }
+        for(let i=activeLasers.length-1; i>=0; i--) { let l = activeLasers[i]; l.update(); l.draw(); if(!l.active) activeLasers.splice(i, 1); }
+
+        // UPDATE P1 (HOST)
+        p1.update(walls, powerups); 
+        p1.draw(); 
+        updateAmmoUI(p1);
+
+        // UPDATE P2 (KHÁCH HOẶC BOT HOẶC LOCAL P2)
+        if (isOnline && isHost) {
+            // Nếu Online Host: Override điều khiển P2 bằng input từ mạng
+            p2.overrideInput(networkInputP2); 
+            p2.update(walls, powerups);
+        } else if (p2.isAI) {
+            updateAI(p2, p1); p2.update(walls, powerups);
+        } else {
+            // Offline PvP
+            p2.update(walls, powerups);
+        }
+        p2.draw(); 
+        updateAmmoUI(p2);
+
+        // Update bullets & collisions
+        for(let i=bullets.length-1; i>=0; i--){
+            let b=bullets[i]; b.update(walls); if(b.type !== 'mine') b.draw(); 
+            
+            for (let bar of barrels) {
+                if (bar.active && !b.dead) {
+                    let size = bar.radius * 2; let left = bar.x - bar.radius; let top = bar.y - bar.radius;
+                    if (circleRectCollide(b.x, b.y, b.radius, left, top, size, size)) {
+                        bar.explode(); b.dead = true; break;
+                    }
                 }
             }
+
+            if(!b.dead){ 
+                if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18) && b.owner!==p1){ p1.takeDamage(b.owner, b); }
+                else if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18) && b.owner!==p2){ p2.takeDamage(b.owner, b); }
+            }
+            if(!b.dead && b.type==='fragment') {
+                    if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18)) { p1.takeDamage(null, b); }
+                    if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18)) { p2.takeDamage(null, b); }
+            }
+            if(!b.dead && b.life<460) {
+                    if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18)) { p1.takeDamage(null, b); }
+                    if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18)) { p2.takeDamage(null, b); }
+            }
+            if(b.dead) bullets.splice(i,1);
         }
 
-        if(!b.dead){ 
-            if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18) && b.owner!==p1){ p1.takeDamage(b.owner, b); }
-            else if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18) && b.owner!==p2){ p2.takeDamage(b.owner, b); }
+        for(let i=particles.length-1;i>=0;i--){ let p=particles[i]; p.update(); p.draw(); if(p.life<=0) particles.splice(i,1); }
+
+        // NẾU LÀ HOST: GỬI DATA CHO CLIENT
+        if (isOnline && isHost && window.sendGameState) {
+            window.sendGameState();
         }
-        if(!b.dead && b.type==='fragment') {
-                if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18)) { p1.takeDamage(null, b); }
-                if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18)) { p2.takeDamage(null, b); }
-        }
-        if(!b.dead && b.life<460) {
-                if(!p1.dead && circleRectCollide(b.x,b.y,b.radius,p1.x-9,p1.y-9,18,18)) { p1.takeDamage(null, b); }
-                if(!p2.dead && circleRectCollide(b.x,b.y,b.radius,p2.x-9,p2.y-9,18,18)) { p2.takeDamage(null, b); }
-        }
-        if(b.dead) bullets.splice(i,1);
     }
 
-    for(let i=particles.length-1;i>=0;i--){ let p=particles[i]; p.update(); p.draw(); if(p.life<=0) particles.splice(i,1); }
-    
     ctx.restore();
 }
 
 window.startGame = function() { 
     hideAllMenus(); 
+    document.getElementById('onlineModal').style.display = 'none'; // Ẩn menu online
     document.getElementById('bottomBar').style.display = 'flex'; 
-    if(animationId) cancelAnimationFrame(animationId); gameRunning = true; gamePaused = false; 
-    scores = {p1:0, p2:0}; document.getElementById('s1').innerText="0"; document.getElementById('s2').innerText="0"; 
+
+    if(animationId) cancelAnimationFrame(animationId); 
+    gameRunning = true; gamePaused = false; 
+    
+    // Reset điểm
+    scores = {p1:0, p2:0}; 
+    document.getElementById('s1').innerText="0"; document.getElementById('s2').innerText="0"; 
+
+    // Nếu là Host Online, gửi tín hiệu bắt đầu cho Client
+    if (isOnline && isHost && conn) {
+        conn.send({ type: 'START' });
+    }
+
     if(isMobile) document.getElementById('mobileControls').style.display = 'block';
-    resetRound(); loop(); 
+    resetRound(); 
+    loop(); 
 }
 
 // INITIALIZATION
 p1 = new Tank(0,0,"#4CAF50","P1",null,'ammo-p1'); 
 p2 = new Tank(0,0,"#D32F2F","P2",null,'ammo-p2');
 
-function destroyWall(index) {
+// Hàm phá tường (đã cập nhật để sync mạng)
+// isNetworkEvent = true nghĩa là lệnh này đến từ mạng (Client nhận), không cần gửi lại Host
+function destroyWall(index, isNetworkEvent = false) { 
     if (index > -1 && index < walls.length) {
         let w = walls[index];
         if (w.x < 5 || w.y < 5 || w.x + w.w > canvas.width - 5 || w.y + w.h > canvas.height - 5) {
@@ -779,11 +813,23 @@ function destroyWall(index) {
             particles.push(new Particle(cx + (Math.random()-0.5)*w.w, cy + (Math.random()-0.5)*w.h, 'debris', '#555'));
         }
         createSmoke(cx, cy);
+        
+        // Xóa tường và vẽ lại
         walls.splice(index, 1);
         wallPath = new Path2D();
         for(let w of walls) {
             wallPath.rect(w.x, w.y, w.w, w.h);
         }
+        
+        // [ONLINE SYNC] Nếu là Host và không phải lệnh từ mạng, gửi sự kiện cho Client
+        if (isOnline && isHost && !isNetworkEvent && window.sendWallBreak) {
+            window.sendWallBreak(index);
+        }
     }
 }
-window.destroyWall = destroyWall;
+// Cập nhật lại window.destroyWall để truy cập được từ bên ngoài (console hoặc các module khác)
+window.destroyWall = function(idx, isNet = false) { destroyWall(idx, isNet); }
+
+// [MỚI] Export thêm các hàm effect để network gọi
+window.createExplosion = createExplosion;
+window.createHitEffect = createHitEffect;
