@@ -323,9 +323,21 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: #d32f2f; curso
 .room-id-box:active { transform: scale(0.98); }
 
 .room-input {
-    background: #111; border: 1px solid #444; color: #fff;
-    padding: 15px; width: 100%; font-size: 16px; font-family: monospace;
-    text-align: center; margin-bottom: 10px; outline: none; text-transform: uppercase;
-    box-sizing: border-box;
+    background: #111; 
+    border: 2px solid #444; /* Viền dày hơn */
+    color: #00ffff; /* Màu chữ nổi bật */
+    padding: 15px; 
+    width: 100%; 
+    font-size: 24px; /* Chữ to đùng dễ đọc */
+    font-family: monospace;
+    text-align: center; 
+    margin-bottom: 15px; 
+    outline: none; 
+    text-transform: uppercase; /* Tự động viết hoa khi nhập */
+    letter-spacing: 5px; /* Các ký tự cách xa nhau cho dễ nhìn */
+    border-radius: 8px;
 }
-.room-input:focus { border-color: #00ffff; }
+.room-input:focus { 
+    border-color: #00ffff; 
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
