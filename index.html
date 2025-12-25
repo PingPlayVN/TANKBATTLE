@@ -125,10 +125,18 @@
         <h2 style="color:#fff; margin-bottom: 20px;">ONLINE MULTIPLAYER</h2>
         
         <div class="online-section" id="hostSection">
-            <p style="color:#aaa; font-size:12px;">SEND THIS ID TO FRIEND:</p>
-            <div class="room-id-box" id="myRoomId" onclick="navigator.clipboard.writeText(this.innerText); alert('Copied ID!')" title="Click to Copy">GENERATING...</div>
-            <div style="color: #66bb6a; font-size: 11px; margin-top: 5px; display:none;" id="hostStatus">WAITING FOR PLAYER...</div>
-        </div>
+    <p style="color:#aaa; font-size:12px;">CREATE ROOM ID (MAX 10 CHARS):</p>
+    
+    <div id="createRoomInputArea">
+        <input type="text" id="customHostId" placeholder="ENTER ID" maxlength="10" class="room-input" style="font-size: 20px; padding: 10px;">
+        <button class="menu-btn" onclick="window.createCustomRoom()">CREATE ROOM</button>
+    </div>
+
+    <div id="createdRoomDisplay" style="display: none;">
+        <div class="room-id-box" id="myRoomId" onclick="navigator.clipboard.writeText(this.innerText); alert('Copied ID!')" title="Click to Copy">...</div>
+        <div style="color: #66bb6a; font-size: 11px; margin-top: 5px; display:none;" id="hostStatus">WAITING FOR PLAYER...</div>
+    </div>
+</div>
 
         <div style="width: 100%; height: 1px; background: #333; margin: 20px 0;"></div>
 
